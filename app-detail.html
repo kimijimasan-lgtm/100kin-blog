@@ -169,6 +169,12 @@
   }
   footer a { color: #b8d9b2; margin: 0 10px; text-decoration: none; }
   footer a:hover { color: #fff; }
+  footer .admin-link {
+    color: rgba(184,217,178,0.35); font-size: 10px;
+    border: none; background: none; cursor: pointer;
+    font-family: inherit;
+  }
+  footer .admin-link:hover { color: rgba(184,217,178,0.7); }
 </style>
 </head>
 <body>
@@ -275,6 +281,7 @@
   <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
   <br><br>
   © 2026 100均アプリ — siro
+  <button class="admin-link" onclick="adminLogin()">管理者</button>
 </footer>
 
 <script>
@@ -295,6 +302,16 @@
     label.textContent = slides[cur].label;
   }
   function move(d) { goTo(cur + d); }
+
+  function adminLogin() {
+    const pw = prompt('管理者パスワードを入力してください');
+    if (pw === null) return;
+    if (pw === 'siro100kin') {
+      window.location.href = 'admin/dashboard.html';
+    } else {
+      alert('パスワードが違います');
+    }
+  }
 </script>
 
 </body>
