@@ -64,6 +64,40 @@
   }
   .inquiry-actions a:hover { text-decoration: underline; }
 
+  .section-title {
+    font-size: 13px; font-weight: 700; color: var(--primary);
+    letter-spacing: 0.1em; padding-bottom: 6px;
+    border-bottom: 2px solid var(--primary); margin: 40px 0 16px;
+  }
+
+  .review-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  .review-card.hidden-review { opacity: 0.55; }
+  .review-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .review-stars { color: var(--accent); font-size: 14px; }
+  .review-user { font-size: 13px; font-weight: 700; }
+  .review-app { font-size: 11px; color: var(--muted); }
+  .review-meta { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .flag-badge {
+    background: #fbe3e0; color: #b5392f; font-size: 11px; font-weight: 700;
+    border-radius: 6px; padding: 2px 8px;
+  }
+  .hidden-badge {
+    background: var(--bg); color: var(--muted); font-size: 11px; font-weight: 700;
+    border: 0.5px solid var(--border); border-radius: 6px; padding: 2px 8px;
+  }
+  .review-comment { font-size: 13px; line-height: 1.7; margin-bottom: 10px; }
+  .review-actions { display: flex; gap: 8px; }
+  .review-actions button {
+    font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    border: 0.5px solid var(--border); background: var(--bg); color: var(--text);
+  }
+  .review-actions button.btn-hide { color: #7a5c10; border-color: #e8c878; background: #fdf6e8; }
+  .review-actions button.btn-restore { color: var(--primary); border-color: #b8d9b2; background: #e8f5e4; }
+  .review-actions button.btn-delete { color: #b5392f; border-color: #f0bdb6; background: #fbe3e0; }
+
   footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 20px; font-size: 12px; }
 </style>
 </head>
@@ -91,6 +125,17 @@
   </div>
 
   <div id="inquiryList"></div>
+
+  <p class="section-title">レビュー管理</p>
+  <p class="page-sub">星1〜2のレビューには「要確認」バッジが自動表示されます。まず非表示にして、必要なら復元できます。</p>
+
+  <div class="filter-row">
+    <div class="filter-btn active" data-review-filter="all">すべて</div>
+    <div class="filter-btn" data-review-filter="flagged">要確認のみ</div>
+    <div class="filter-btn" data-review-filter="hidden">非表示のみ</div>
+  </div>
+
+  <div id="reviewList"></div>
 
 </div>
 
@@ -127,9 +172,9 @@
     `).join('');
   }
 
-  document.querySelectorAll('.filter-btn').forEach(btn => {
+  document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       filter = btn.dataset.filter;
       render();
@@ -137,6 +182,85 @@
   });
 
   render();
+
+  // --- レビュー管理 ---
+  const reviews = [
+    { id: 1, app: 'PCスマホ連動メモ', user: 'なっちゃん',   rating: 4, date: '2026-01-26', comment: '仕事のメモをPCで入力して、外出先でスマホで確認できて便利です。シンプルで使いやすいです。', status: 'visible' },
+    { id: 2, app: 'PCスマホ連動メモ', user: 'マユミーヌ',   rating: 5, date: '2026-01-01', comment: 'Dropboxの契約を解約できました。これで十分です。ありがとうございます。', status: 'visible' },
+    { id: 3, app: 'PCスマホ連動メモ', user: 'けんと',       rating: 1, date: '2026-06-15', comment: '同期が頻繁に失敗します。直してほしいです。', status: 'visible' },
+    { id: 4, app: '糖尿人のカウンター', user: 'ひろき',     rating: 2, date: '2026-06-12', comment: '入力項目が多くて使いにくいと感じました。もう少し簡略化してほしいです。', status: 'visible' },
+    { id: 5, app: 'PCスマホ連動メモ', user: 'あゆ',         rating: 1, date: '2026-06-08', comment: '広告みたいなレビューを投稿していた荒らしユーザー（運営にて非表示済み）。', status: 'hidden' },
+  ];
+
+  const reviewListEl = document.getElementById('reviewList');
+  let reviewFilter = 'all';
+
+  function starString(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+
+  function renderReviews() {
+    let items = reviews;
+    if (reviewFilter === 'flagged') {
+      items = reviews.filter(r => r.rating <= 2 && r.status !== 'deleted');
+    } else if (reviewFilter === 'hidden') {
+      items = reviews.filter(r => r.status === 'hidden');
+    } else {
+      items = reviews.filter(r => r.status !== 'deleted');
+    }
+
+    reviewListEl.innerHTML = items.map(r => {
+      const flagged = r.rating <= 2;
+      const isHidden = r.status === 'hidden';
+      return `
+      <div class="review-card ${isHidden ? 'hidden-review' : ''}">
+        <div class="review-head">
+          <span class="review-stars">${starString(r.rating)}</span>
+          <span class="review-user">${r.user}</span>
+          <span class="review-app">／ ${r.app}</span>
+          ${flagged ? '<span class="flag-badge">要確認</span>' : ''}
+          ${isHidden ? '<span class="hidden-badge">非表示中</span>' : ''}
+          <span class="review-meta">${r.date}</span>
+        </div>
+        <p class="review-comment">${r.comment}</p>
+        <div class="review-actions">
+          ${isHidden
+            ? `<button class="btn-restore" onclick="restoreReview(${r.id})">復元する</button>`
+            : `<button class="btn-hide" onclick="hideReview(${r.id})">非表示にする</button>`}
+          <button class="btn-delete" onclick="deleteReview(${r.id})">削除する</button>
+        </div>
+      </div>
+      `;
+    }).join('') || '<p class="page-sub">該当するレビューはありません</p>';
+  }
+
+  function hideReview(id) {
+    const r = reviews.find(x => x.id === id);
+    if (r) r.status = 'hidden';
+    renderReviews();
+  }
+
+  function restoreReview(id) {
+    const r = reviews.find(x => x.id === id);
+    if (r) r.status = 'visible';
+    renderReviews();
+  }
+
+  function deleteReview(id) {
+    if (!confirm('このレビューを削除します。削除すると復元できません。よろしいですか？\n（先に「非表示にする」を使うことをおすすめします）')) return;
+    const r = reviews.find(x => x.id === id);
+    if (r) r.status = 'deleted';
+    renderReviews();
+  }
+
+  document.querySelectorAll('.filter-btn[data-review-filter]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn[data-review-filter]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      reviewFilter = btn.dataset.reviewFilter;
+      renderReviews();
+    });
+  });
+
+  renderReviews();
 </script>
 
 </body>
