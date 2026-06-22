@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>100均アプリ — 自分（開発者）なら100円以上でも払うものを作りました</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; padding-top: 52px; }
+
+  /* Header */
+  header {
+    background: var(--primary);
+    padding: 0 20px;
+    display: flex; align-items: center; gap: 14px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px;
+  }
+  header h1 {
+    color: #fff; font-size: 16px; font-weight: 700; letter-spacing: 0.06em;
+    border: 2px solid #fff;
+    padding: 3px 14px; border-radius: 6px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  header .catch { color: #b8d9b2; font-size: 11px; flex: 1; }
+  header nav { margin-left: auto; flex-shrink: 0; }
+  header nav a { color: #b8d9b2; font-size: 12px; text-decoration: none; white-space: nowrap; }
+  header nav a:hover { color: #fff; }
+
+  /* App section */
+  .app-section {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 24px;
+  }
+
+  /* アプリ名行 */
+  .app-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 20px;
+  }
+  .app-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: #c8dfc4; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 26px;
+  }
+  .app-info .name { font-size: 20px; font-weight: 700; margin-bottom: 3px; }
+  .app-info .stars { color: var(--accent); font-size: 14px; }
+  .app-info .detail-link {
+    margin-left: 10px; font-size: 13px; color: var(--primary);
+    text-decoration: none; font-weight: 700;
+  }
+  .app-info .detail-link:hover { text-decoration: underline; }
+
+  /* 3カラムレイアウト */
+  .three-col {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 640px) {
+    .three-col { grid-template-columns: 1fr; }
+  }
+
+  /* 左：縦長サムネイル */
+  .viewer {
+    position: relative;
+    border-radius: 24px;
+    overflow: hidden;
+    aspect-ratio: 9/19.5;
+    background: linear-gradient(160deg, #d4e8d0, #8ec488);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+  }
+  .viewer img { width: 100%; height: 100%; object-fit: cover; }
+  .viewer .emoji { font-size: 64px; }
+  .arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.85);
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: var(--text);
+    transition: background 0.15s; z-index: 10;
+  }
+  .arrow:hover { background: #fff; }
+  .arrow.left  { left: 8px; }
+  .arrow.right { right: 8px; }
+
+  /* 中：解説 */
+  .desc-col { padding-top: 4px; }
+  .desc-col .section-label {
+    font-size: 11px; font-weight: 700; color: var(--primary);
+    letter-spacing: 0.12em; margin-bottom: 10px;
+  }
+  .desc-col ul { list-style: none; }
+  .desc-col ul li {
+    font-size: 14px; line-height: 1.75;
+    padding: 8px 0; border-bottom: 0.5px solid var(--border);
+    display: flex; gap: 8px;
+  }
+  .desc-col ul li::before { content: "✓"; color: var(--primary); font-weight: 700; flex-shrink: 0; }
+  .desc-col .price-row {
+    margin-top: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .desc-col .price { font-size: 22px; font-weight: 700; }
+  .desc-col .price-note { font-size: 12px; color: var(--muted); }
+  .desc-col .btn {
+    display: inline-block; margin-top: 14px;
+    background: var(--accent); color: #fff;
+    padding: 10px 24px; border-radius: 8px;
+    font-size: 14px; font-weight: 700; text-decoration: none;
+  }
+  .desc-col .btn:hover { background: #c98910; }
+
+  /* 右：キャッチフレーズ */
+  .catch-col {
+    padding-top: 4px;
+  }
+  .catch-col .catch-block {
+    background: var(--primary);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    color: #fff;
+  }
+  .catch-col .catch-word {
+    display: block;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    line-height: 1.6;
+  }
+  .catch-col .catch-word.accent { color: var(--accent); font-size: 30px; line-height: 1.4; }
+
+  /* Footer */
+  footer {
+    background: var(--primary); color: #b8d9b2;
+    text-align: center; padding: 20px; font-size: 12px; margin-top: 60px;
+  }
+  footer a { color: #b8d9b2; margin: 0 10px; text-decoration: none; }
+  footer a:hover { color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <nav><a href="mailto:apps100kin@gmail.com">開発者へ問合せ</a></nav>
+  <h1>100均アプリ</h1>
+  <span class="catch">自分（開発者）が逆の立場でも「100円なら払ってもいいな！？」と思えるものをつくりました。</span>
+</header>
+
+<section class="app-section">
+
+  <div class="app-header">
+    <div class="app-icon">📝</div>
+    <div class="app-info">
+      <p class="name">PCスマホ連動メモ</p>
+      <span class="stars">★★★★★</span>
+      <a class="detail-link" href="app-detail.html">詳細・購入 →</a>
+    </div>
+  </div>
+
+  <div class="three-col">
+
+    <!-- 左 1/4：縦長ビューワー -->
+    <div>
+      <div class="viewer" id="mainViewer" onclick="window.location.href='app-detail.html'">
+        <div class="emoji" id="mainEmoji">📱</div>
+        <div class="arrow left" onclick="event.stopPropagation(); move(-1)">&#8249;</div>
+        <div class="arrow right" onclick="event.stopPropagation(); move(1)">&#8250;</div>
+      </div>
+      <p style="text-align:center; font-size:11px; color:var(--muted); margin-top:8px;" id="slideLabel">スマホのホーム画面</p>
+    </div>
+
+    <!-- 中 2/4：解説 -->
+    <div class="desc-col">
+      <p class="section-label">このアプリでできること</p>
+      <ul>
+        <li>DropboxやiCloudなしでPC・スマホ間同期</li>
+        <li>カードとパネルで情報をすっきり整理</li>
+        <li>カードでは2つのモードを実装</li>
+        <li>カテゴリ間でカードや文章の入れ替えも</li>
+        <li>WindowsもMacもiPhoneもAndroidも対応</li>
+        <li>インストール不要・ブラウザからすぐ使える</li>
+      </ul>
+      <div class="price-row">
+        <span class="price">¥100</span>
+        <span class="price-note">買い切り・追加料金なし</span>
+      </div>
+      <a class="btn" href="app-detail.html">詳細・購入ページへ</a>
+    </div>
+
+    <!-- 右 1/4：キャッチフレーズ -->
+    <div class="catch-col">
+      <div class="catch-block">
+        <span class="catch-word">DropboxやiCloudなしで</span>
+        <span class="catch-word accent">PC・スマホ同期</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 2作目以降のスペース -->
+  <div style="margin-top:60px; padding:48px 24px; border:2px dashed var(--border); border-radius:var(--radius); text-align:center; color:var(--muted); font-size:14px;">
+    この下は2作目以降が入るスペースです
+  </div>
+
+</section>
+
+<footer>
+  <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
+  <br><br>
+  © 2026 100均アプリ — siro
+</footer>
+
+<script>
+  const slides = [
+    { emoji: '📱', label: 'スマホのホーム画面', bg: 'linear-gradient(160deg,#d4e8d0,#8ec488)' },
+    { emoji: '🖥️', label: 'PCのホーム画面',    bg: 'linear-gradient(160deg,#d0dff5,#90b4e8)' },
+    { emoji: '🗂️', label: 'カード一覧',         bg: 'linear-gradient(160deg,#f5eac8,#e8c878)' },
+    { emoji: '📄', label: 'カードの中身',        bg: 'linear-gradient(160deg,#c8eae5,#78cec4)' },
+  ];
+  let cur = 0;
+  const viewer = document.getElementById('mainViewer');
+  const emoji  = document.getElementById('mainEmoji');
+  const label  = document.getElementById('slideLabel');
+
+  function goTo(i) {
+    cur = (i + slides.length) % slides.length;
+    emoji.textContent = slides[cur].emoji;
+    viewer.style.background = slides[cur].bg;
+    label.textContent = slides[cur].label;
+  }
+  function move(d) { goTo(cur + d); }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ログイン — 100均アプリ</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    background: var(--primary);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  header a.back { color: #b8d9b2; font-size: 13px; text-decoration: none; }
+  header h1 { color: #fff; font-size: 18px; font-weight: 700; }
+  header .contact { margin-left: auto; font-size: 12px; color: #b8d9b2; text-decoration: none; }
+  header .contact:hover { color: #fff; }
+
+  .page {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+  }
+
+  .app-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #d4e8d0, #a8cfa0);
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+  }
+
+  .app-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .app-sub  { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 0 0 24px; }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    margin-bottom: 12px;
+    text-decoration: none;
+  }
+  .btn-purchase { background: var(--accent); color: #fff; }
+  .btn-purchase:hover { background: #c98910; }
+  .btn-guest { background: var(--bg); color: var(--text); border: 0.5px solid var(--border); }
+  .btn-guest:hover { background: var(--border); }
+
+  .limit-note {
+    background: #fdf6e8;
+    border: 0.5px solid #e8c878;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #7a5c10;
+    text-align: left;
+    margin-top: -4px;
+    margin-bottom: 16px;
+  }
+  .limit-note ul { padding-left: 14px; margin-top: 4px; }
+  .limit-note li { margin-top: 3px; }
+
+  .contact-link { font-size: 12px; color: var(--muted); margin-top: 20px; }
+  .contact-link a { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back" href="app-detail.html">← 詳細に戻る</a>
+  <h1>100均アプリ</h1>
+  <a class="contact" href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
+</header>
+
+<div class="page">
+  <div class="card">
+
+    <div class="app-icon">📝</div>
+    <p class="app-name">PCスマホ連動メモ</p>
+    <p class="app-sub">利用方法を選んでください</p>
+
+    <hr class="divider">
+
+    <!-- 購入ボタン -->
+    <a class="btn btn-purchase" href="https://buy.stripe.com/XXXX" target="_blank">
+      購入してログイン（¥100）
+    </a>
+
+    <!-- ゲストボタン + 制限説明 -->
+    <a class="btn btn-guest" href="https://kimijimasan-lgtm.github.io/howto-v2/">
+      ゲストで試してみる（無料）
+    </a>
+    <div class="limit-note">
+      ゲストには次の制限があります：
+      <ul>
+        <li>パネルは 3枚まで</li>
+        <li>パネル内のカードは 10枚まで</li>
+      </ul>
+      制限を超えると「購入してフル機能を使う」ボタンが表示されます。
+    </div>
+
+    <div class="contact-link">
+      ご不明な点は <a href="mailto:apps100kin@gmail.com">開発者へお問合せください</a>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

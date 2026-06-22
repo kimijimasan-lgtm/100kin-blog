@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCスマホ連動メモ — 100均アプリ</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+    --header-h: 52px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+    padding-top: 52px;
+  }
+
+  /* 固定ヘッダー */
+  header {
+    background: var(--primary);
+    padding: 0 24px;
+    height: 52px; min-height: 52px; max-height: 52px;
+    overflow: hidden;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: 12px;
+    display: flex; align-items: center; gap: 14px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  }
+  header a.back { color: #b8d9b2; text-decoration: none; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1.5px solid #b8d9b2; border-radius: 6px; font-size: 16px; line-height: 1; }
+  header a.back:hover { color: #fff; }
+  header h1 { color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.06em; border: 2px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap; flex-shrink: 0; }
+  header .catch { color: #ffe033; font-size: 12px; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
+
+  .breadcrumb { padding: 10px 24px; font-size: 12px; color: var(--muted); }
+  .breadcrumb a { color: var(--primary); text-decoration: none; }
+
+  /* 3カラムレイアウト */
+  .layout {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 24px 60px;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 700px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* 左：縦長ビューワー */
+  .viewer-wrap {
+    position: relative;
+  }
+  .screenshot-main {
+    width: 100%;
+    aspect-ratio: 9/19.5;
+    background: linear-gradient(135deg, #d4e8d0, #a8cfa0);
+    border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+  }
+  .arrow {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.88);
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 17px; color: var(--text);
+    transition: background 0.15s; z-index: 10;
+    user-select: none;
+  }
+  .arrow:hover { background: #fff; }
+  .arrow.left  { left: 6px; }
+  .arrow.right { right: 6px; }
+  .slide-label {
+    text-align: center; font-size: 11px; color: var(--muted); margin-top: 8px;
+  }
+
+  /* アプリ情報 */
+  .app-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .app-catch { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .stars-row { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; }
+  .stars { color: var(--accent); font-size: 16px; }
+  .review-link { font-size: 13px; color: var(--primary); }
+
+  .features-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+  .features-list { list-style: none; margin-bottom: 24px; }
+  .features-list li { font-size: 14px; padding: 6px 0; border-bottom: 0.5px solid var(--border); }
+  .features-list li::before { content: "✓ "; color: var(--primary); font-weight: 700; }
+
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
+  .spec-table tr { border-bottom: 0.5px solid var(--border); }
+  .spec-table td { padding: 8px 4px; }
+  .spec-table td:first-child { color: var(--muted); width: 40%; }
+
+  /* 購入ボックス */
+  .purchase-box {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: sticky;
+    top: 64px;
+    align-self: start;
+  }
+  .price { font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+  .price span { font-size: 13px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
+  .purchase-note { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+  .btn {
+    display: block; width: 100%; padding: 13px;
+    border-radius: 8px; font-size: 15px; font-weight: 700;
+    text-align: center; cursor: pointer; border: none;
+    margin-bottom: 10px; text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #c98910; }
+  .btn-secondary { background: var(--bg); color: var(--text); border: 0.5px solid var(--border); font-size: 14px; }
+  .btn-secondary:hover { background: var(--border); }
+
+  .limit-note {
+    background: #fdf6e8; border: 0.5px solid #e8c878;
+    border-radius: 8px; padding: 10px 12px;
+    font-size: 12px; color: #7a5c10; margin-bottom: 12px;
+  }
+  .limit-note ul { padding-left: 14px; margin-top: 4px; }
+  .limit-note li { margin-top: 3px; }
+
+  .contact-link { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .contact-link a { color: var(--primary); }
+
+  /* レビュー */
+  .section-title {
+    font-size: 13px; font-weight: 700; color: var(--primary);
+    letter-spacing: 0.1em; padding-bottom: 6px;
+    border-bottom: 2px solid var(--primary); margin-bottom: 16px;
+  }
+  .review-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
+  }
+  .review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .reviewer { font-size: 13px; font-weight: 700; }
+  .review-meta { font-size: 11px; color: var(--muted); }
+  .review-stars { color: var(--accent); font-size: 13px; }
+  .review-text { font-size: 13px; line-height: 1.7; margin-top: 6px; }
+
+  footer {
+    background: var(--primary); color: #b8d9b2;
+    text-align: center; padding: 20px; font-size: 12px;
+  }
+  footer a { color: #b8d9b2; margin: 0 10px; text-decoration: none; }
+  footer a:hover { color: #fff; }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back" href="index.html" title="ホームに戻る"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M9 21V12h6v9"/><path d="M3 12v9h18V12"/></svg></a>
+  <h1>100均アプリ</h1>
+  <span class="catch">自分（開発者）が逆の立場でも「100円なら払ってもいいな！？」と思えるものをつくりました。</span>
+</header>
+
+<div class="breadcrumb">
+  <a href="index.html">ホーム</a> › PCスマホ連動メモ
+</div>
+
+<div class="layout">
+
+  <!-- 左 1/4：縦長ビューワー -->
+  <div>
+    <div class="viewer-wrap">
+      <div class="screenshot-main" id="mainViewer">📱</div>
+      <div class="arrow left"  onclick="move(-1)">&#8249;</div>
+      <div class="arrow right" onclick="move(1)">&#8250;</div>
+    </div>
+    <p class="slide-label" id="slideLabel">スマホのホーム画面</p>
+  </div>
+
+  <!-- 中 2/4：解説 -->
+  <div>
+    <p class="app-name">PCスマホ連動メモ</p>
+    <p class="app-catch">DropboxやiCloudなしでPC・スマホ間同期</p>
+    <div class="stars-row">
+      <span class="stars">★★★★★</span>
+      <a class="review-link" href="#reviews">12件のレビュー</a>
+    </div>
+
+    <p class="features-title">このアプリでできること</p>
+    <ul class="features-list">
+      <li>DropboxやiCloudなしでPC・スマホ間同期</li>
+      <li>カードとパネルで情報をすっきり整理</li>
+      <li>カードでは2つのモードを実装</li>
+      <li>カテゴリ間でカードや文章の入れ替えも</li>
+      <li>WindowsもMacもiPhoneもAndroidも対応</li>
+      <li>インストール不要・ブラウザからすぐ使える</li>
+    </ul>
+
+    <table class="spec-table">
+      <tr><td>対応OS</td><td>Windows / Mac / iPhone / Android</td></tr>
+      <tr><td>形式</td><td>PWA（インストール不要）</td></tr>
+      <tr><td>開発者</td><td>siro</td></tr>
+      <tr><td>更新日</td><td>2026年6月</td></tr>
+    </table>
+
+    <!-- レビュー -->
+    <div id="reviews" style="margin-top:32px;">
+      <p class="section-title">カスタマーレビュー</p>
+      <div class="review-card">
+        <div class="review-header">
+          <div class="avatar">な</div>
+          <div>
+            <p class="reviewer">なっちゃん</p>
+            <p class="review-meta">2026年1月26日</p>
+          </div>
+        </div>
+        <div class="review-stars">★★★★☆</div>
+        <p class="review-text">仕事のメモをPCで入力して、外出先でスマホで確認できて便利です。シンプルで使いやすいです。</p>
+      </div>
+      <div class="review-card">
+        <div class="review-header">
+          <div class="avatar">マ</div>
+          <div>
+            <p class="reviewer">マユミーヌ</p>
+            <p class="review-meta">2026年1月1日</p>
+          </div>
+        </div>
+        <div class="review-stars">★★★★★</div>
+        <p class="review-text">Dropboxの契約を解約できました。これで十分です。ありがとうございます。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右 1/4：購入ボックス -->
+  <div>
+    <div class="purchase-box">
+      <p class="price">¥100<br><span>（買い切り）</span></p>
+
+      <a class="btn btn-primary" href="https://buy.stripe.com/XXXX" target="_blank">
+        購入してログイン
+      </a>
+
+      <a class="btn btn-secondary" href="https://kimijimasan-lgtm.github.io/howto-v2/">
+        ゲストで試してみる
+      </a>
+
+      <div class="contact-link">
+        <a href="#reviews">アプリのレビューを投稿する ↓</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <a href="index.html">ホームに戻る</a>
+  <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
+  <br><br>
+  © 2026 100均アプリ — siro
+</footer>
+
+<script>
+  const slides = [
+    { emoji: '📱', label: 'スマホのホーム画面', bg: 'linear-gradient(135deg,#d4e8d0,#a8cfa0)' },
+    { emoji: '🖥️', label: 'PCのホーム画面',    bg: 'linear-gradient(135deg,#d0dff5,#90b4e8)' },
+    { emoji: '🗂️', label: 'カード一覧',         bg: 'linear-gradient(135deg,#f5eac8,#e8c878)' },
+    { emoji: '📄', label: 'カードの中身',        bg: 'linear-gradient(135deg,#c8eae5,#78cec4)' },
+  ];
+  let cur = 0;
+  const viewer = document.getElementById('mainViewer');
+  const label  = document.getElementById('slideLabel');
+
+  function goTo(i) {
+    cur = (i + slides.length) % slides.length;
+    viewer.textContent = slides[cur].emoji;
+    viewer.style.background = slides[cur].bg;
+    label.textContent = slides[cur].label;
+  }
+  function move(d) { goTo(cur + d); }
+</script>
+
+</body>
+</html>
