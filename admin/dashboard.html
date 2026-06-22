@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理ダッシュボード — 100均アプリ</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; padding-top: 52px; }
+
+  header {
+    background: var(--primary);
+    padding: 0 24px;
+    height: 52px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: 14px;
+  }
+  header h1 {
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.06em;
+    border: 2px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap;
+  }
+  header .badge { color: var(--accent); font-size: 12px; font-weight: 700; }
+  header nav { margin-left: auto; display: flex; gap: 18px; }
+  header nav a { color: #b8d9b2; font-size: 13px; text-decoration: none; }
+  header nav a:hover, header nav a.active { color: #fff; }
+
+  .layout { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  @media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 18px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .stat-card .value { font-size: 26px; font-weight: 700; }
+  .stat-card .value.accent { color: var(--accent); }
+
+  .section-title {
+    font-size: 13px; font-weight: 700; color: var(--primary);
+    letter-spacing: 0.1em; padding-bottom: 6px;
+    border-bottom: 2px solid var(--primary); margin-bottom: 16px;
+  }
+
+  .quick-links {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px;
+  }
+  @media (max-width: 700px) { .quick-links { grid-template-columns: 1fr; } }
+  .quick-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 20px; text-decoration: none; color: var(--text);
+    display: block;
+  }
+  .quick-card:hover { border-color: var(--primary); }
+  .quick-card .icon { font-size: 24px; margin-bottom: 8px; }
+  .quick-card .title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .quick-card .desc { font-size: 12px; color: var(--muted); }
+
+  table.list { width: 100%; border-collapse: collapse; background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  table.list th { text-align: left; font-size: 12px; color: var(--muted); padding: 10px 14px; border-bottom: 0.5px solid var(--border); }
+  table.list td { font-size: 13px; padding: 10px 14px; border-bottom: 0.5px solid var(--border); }
+  table.list tr:last-child td { border-bottom: none; }
+  .unread-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); margin-right: 6px; }
+
+  footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 20px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>100均アプリ</h1>
+  <span class="badge">ADMIN</span>
+  <nav>
+    <a href="dashboard.html" class="active">ダッシュボード</a>
+    <a href="inquiries.html">問い合わせ</a>
+    <a href="mail-send.html">一斉メール</a>
+    <a href="../index.html">サイトを見る</a>
+  </nav>
+</header>
+
+<div class="layout">
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <p class="label">購入者数</p>
+      <p class="value">42</p>
+    </div>
+    <div class="stat-card">
+      <p class="label">ゲスト利用数</p>
+      <p class="value">318</p>
+    </div>
+    <div class="stat-card">
+      <p class="label">未読の問い合わせ</p>
+      <p class="value accent" id="unreadCount">3</p>
+    </div>
+    <div class="stat-card">
+      <p class="label">公開中アプリ</p>
+      <p class="value">2</p>
+    </div>
+  </div>
+
+  <p class="section-title">クイックアクセス</p>
+  <div class="quick-links">
+    <a class="quick-card" href="inquiries.html">
+      <div class="icon">📨</div>
+      <p class="title">問い合わせ一覧</p>
+      <p class="desc">購入ユーザーからのメッセージを確認</p>
+    </a>
+    <a class="quick-card" href="mail-send.html">
+      <div class="icon">📢</div>
+      <p class="title">一斉メール送信</p>
+      <p class="desc">購入済みユーザーへ通知を送る</p>
+    </a>
+    <a class="quick-card" href="https://console.firebase.google.com/" target="_blank">
+      <div class="icon">🗂️</div>
+      <p class="title">アプリ登録（Firestore）</p>
+      <p class="desc">新アプリのサムネイル・説明文を追加</p>
+    </a>
+  </div>
+
+  <p class="section-title">最近の問い合わせ</p>
+  <table class="list">
+    <thead>
+      <tr><th>件名</th><th>送信者</th><th>日時</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="unread-dot"></span>同期がうまくいきません</td>
+        <td>tanaka@example.com</td>
+        <td>2026-06-21 18:42</td>
+      </tr>
+      <tr>
+        <td><span class="unread-dot"></span>次回作のリクエスト</td>
+        <td>nat-chan@example.com</td>
+        <td>2026-06-20 09:15</td>
+      </tr>
+      <tr>
+        <td><span class="unread-dot"></span>領収書がほしい</td>
+        <td>mayumine@example.com</td>
+        <td>2026-06-18 21:03</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer>
+  © 2026 100均アプリ — siro（管理画面）
+</footer>
+
+</body>
+</html>

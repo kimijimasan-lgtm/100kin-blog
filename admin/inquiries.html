@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>問い合わせ一覧 — 100均アプリ 管理画面</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; padding-top: 52px; }
+
+  header {
+    background: var(--primary);
+    padding: 0 24px;
+    height: 52px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: 14px;
+  }
+  header h1 {
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.06em;
+    border: 2px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap;
+  }
+  header .badge { color: var(--accent); font-size: 12px; font-weight: 700; }
+  header nav { margin-left: auto; display: flex; gap: 18px; }
+  header nav a { color: #b8d9b2; font-size: 13px; text-decoration: none; }
+  header nav a:hover, header nav a.active { color: #fff; }
+
+  .layout { max-width: 900px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  .page-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .filter-btn {
+    background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px;
+    padding: 6px 14px; font-size: 12px; color: var(--muted); cursor: pointer;
+  }
+  .filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  .inquiry-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+    cursor: pointer;
+  }
+  .inquiry-card.unread { border-left: 3px solid var(--accent); }
+  .inquiry-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .unread-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .inquiry-subject { font-size: 14px; font-weight: 700; }
+  .inquiry-meta { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .inquiry-from { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .inquiry-body { font-size: 13px; line-height: 1.7; color: var(--text); }
+  .inquiry-actions { margin-top: 10px; }
+  .inquiry-actions a {
+    font-size: 12px; color: var(--primary); text-decoration: none; margin-right: 14px;
+  }
+  .inquiry-actions a:hover { text-decoration: underline; }
+
+  footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 20px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>100均アプリ</h1>
+  <span class="badge">ADMIN</span>
+  <nav>
+    <a href="dashboard.html">ダッシュボード</a>
+    <a href="inquiries.html" class="active">問い合わせ</a>
+    <a href="mail-send.html">一斉メール</a>
+    <a href="../index.html">サイトを見る</a>
+  </nav>
+</header>
+
+<div class="layout">
+
+  <p class="page-title">問い合わせ一覧</p>
+  <p class="page-sub">購入ユーザーからのメッセージを時系列で表示しています</p>
+
+  <div class="filter-row">
+    <div class="filter-btn active" data-filter="all">すべて</div>
+    <div class="filter-btn" data-filter="unread">未読のみ</div>
+  </div>
+
+  <div id="inquiryList"></div>
+
+</div>
+
+<footer>
+  © 2026 100均アプリ — siro（管理画面）
+</footer>
+
+<script>
+  const inquiries = [
+    { subject: '同期がうまくいきません', from: 'tanaka@example.com', date: '2026-06-21 18:42', body: 'PCで入力したメモがスマホ側に反映されないことがあります。ブラウザはChromeを使っています。確認していただけますか？', unread: true },
+    { subject: '次回作のリクエスト', from: 'nat-chan@example.com', date: '2026-06-20 09:15', body: '糖尿人のカウンター、楽しみにしています！血糖値の記録もできるようになると嬉しいです。', unread: true },
+    { subject: '領収書がほしい', from: 'mayumine@example.com', date: '2026-06-18 21:03', body: '会社の経費精算用に領収書を発行していただくことは可能でしょうか。', unread: true },
+    { subject: '使い方について', from: 'satoh@example.com', date: '2026-06-10 12:30', body: 'カードを別のパネルに移動する方法が分かりません。教えてください。', unread: false },
+  ];
+
+  const listEl = document.getElementById('inquiryList');
+  let filter = 'all';
+
+  function render() {
+    const items = filter === 'unread' ? inquiries.filter(i => i.unread) : inquiries;
+    listEl.innerHTML = items.map(i => `
+      <div class="inquiry-card ${i.unread ? 'unread' : ''}">
+        <div class="inquiry-head">
+          ${i.unread ? '<span class="unread-dot"></span>' : ''}
+          <span class="inquiry-subject">${i.subject}</span>
+          <span class="inquiry-meta">${i.date}</span>
+        </div>
+        <p class="inquiry-from">${i.from}</p>
+        <p class="inquiry-body">${i.body}</p>
+        <div class="inquiry-actions">
+          <a href="mailto:${i.from}?subject=Re: ${encodeURIComponent(i.subject)}">返信する</a>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  render();
+</script>
+
+</body>
+</html>

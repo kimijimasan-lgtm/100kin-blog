@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一斉メール送信 — 100均アプリ 管理画面</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; padding-top: 52px; }
+
+  header {
+    background: var(--primary);
+    padding: 0 24px;
+    height: 52px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: 14px;
+  }
+  header h1 {
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.06em;
+    border: 2px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap;
+  }
+  header .badge { color: var(--accent); font-size: 12px; font-weight: 700; }
+  header nav { margin-left: auto; display: flex; gap: 18px; }
+  header nav a { color: #b8d9b2; font-size: 13px; text-decoration: none; }
+  header nav a:hover, header nav a.active { color: #fff; }
+
+  .layout { max-width: 700px; margin: 0 auto; padding: 32px 24px 60px; }
+
+  .page-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .form-card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+  .field select, .field input, .field textarea {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 0.5px solid var(--border); border-radius: 8px;
+    font-family: inherit; background: var(--bg); color: var(--text);
+  }
+  .field textarea { resize: vertical; min-height: 160px; line-height: 1.6; }
+  .field .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .recipient-count {
+    display: inline-block; background: var(--bg); border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 4px 10px; font-size: 12px; color: var(--primary); font-weight: 700;
+  }
+
+  .btn {
+    display: inline-block; padding: 12px 28px; border-radius: 8px;
+    font-size: 14px; font-weight: 700; text-align: center; cursor: pointer;
+    border: none; background: var(--accent); color: #fff;
+  }
+  .btn:hover { background: #c98910; }
+  .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .status-msg { font-size: 13px; margin-top: 14px; padding: 10px 12px; border-radius: 8px; display: none; }
+  .status-msg.show { display: block; }
+  .status-msg.success { background: #e8f5e4; color: var(--primary); border: 0.5px solid #b8d9b2; }
+
+  footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 20px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>100均アプリ</h1>
+  <span class="badge">ADMIN</span>
+  <nav>
+    <a href="dashboard.html">ダッシュボード</a>
+    <a href="inquiries.html">問い合わせ</a>
+    <a href="mail-send.html" class="active">一斉メール</a>
+    <a href="../index.html">サイトを見る</a>
+  </nav>
+</header>
+
+<div class="layout">
+
+  <p class="page-title">一斉メール送信</p>
+  <p class="page-sub">購入済みユーザーのメールアドレスへ一括で通知を送ります</p>
+
+  <div class="form-card">
+    <form id="mailForm">
+      <div class="field">
+        <label>送信先</label>
+        <select id="audience">
+          <option value="purchasers">購入済みユーザー全員（<span id="countPurchasers">42</span>件）</option>
+          <option value="all">購入済み＋ゲスト全員</option>
+        </select>
+        <p class="hint">送信予定件数: <span class="recipient-count" id="recipientCount">42件</span></p>
+      </div>
+
+      <div class="field">
+        <label>件名</label>
+        <input type="text" id="subject" placeholder="例：新アプリ「糖尿人のカウンター」公開のお知らせ" required>
+      </div>
+
+      <div class="field">
+        <label>本文</label>
+        <textarea id="body" placeholder="本文を入力してください" required></textarea>
+        <p class="hint">送信元: apps100kin@gmail.com（Firebase Functions + Resend経由）</p>
+      </div>
+
+      <button type="submit" class="btn">この内容で送信する</button>
+      <div class="status-msg success" id="statusMsg"></div>
+    </form>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 100均アプリ — siro（管理画面）
+</footer>
+
+<script>
+  const audienceSel = document.getElementById('audience');
+  const recipientCount = document.getElementById('recipientCount');
+  const counts = { purchasers: 42, all: 360 };
+
+  audienceSel.addEventListener('change', () => {
+    recipientCount.textContent = counts[audienceSel.value] + '件';
+  });
+
+  document.getElementById('mailForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    // TODO: Firebase Functions 経由で Resend/SendGrid に送信処理を実装する
+    const status = document.getElementById('statusMsg');
+    status.textContent = `送信を受け付けました（${recipientCount.textContent}）。実際の送信にはFirebase Functions連携が必要です。`;
+    status.classList.add('show');
+  });
+</script>
+
+</body>
+</html>
