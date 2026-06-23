@@ -2,7 +2,7 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-06-22
+最終更新: 2026-06-23
 
 ---
 
@@ -69,15 +69,23 @@
 
 リポジトリ: GitHub `kimijimasan-lgtm/100kin-blog`（mainブランチ、`save.bat` で手動push）
 
+**Firebaseプロジェクト（2026-06-23作成済み）**:
+- Project ID: `apps100kin`（Firebase CLIでログイン・作成。ログインアカウント: kimijimasan@gmail.com）
+- Web App登録済み。SDK設定は `firebase-config.js`（ルート直下）に記載、`login.html` から `<script type="module">` で読み込み確認済み
+- Authentication: 匿名／メール・パスワード／Google の3プロバイダーを有効化済み
+- Firestore: `(default)` データベースをasia-northeast1に作成済み。`firestore.rules` は現状 `allow read, write: if false`（全拒否）のデフォルト安全設定のままデプロイ済み（スキーマ未設計のため）
+- `.firebaserc` / `firebase.json` / `firestore.indexes.json` を追加済み
+- howto-v2側のFirebaseプロジェクト（`torisetu-234c3`）とは別プロジェクト。統合方針（ゲストボタンの遷移先・UID連携方法）は未決定
+
 ---
 
 ## 5. 次回やること
 
 優先度の高いものから:
 
-1. **Firebase連携の開始**（設計書Phase 2）
-   - Firebaseプロジェクト作成、Firebase Auth（匿名＋メール/Google）導入
-   - `login.html` のゲストボタンを Firebase匿名認証に置き換え（現状は外部howto-v2への直リンクのみ）
+1. **ゲストボタンとFirebase匿名認証の接続**（認証基盤は構築済み、接続のみ未実装）
+   - `login.html` の「ゲストで試してみる」ボタン押下時に `signInAnonymously()` を呼ぶ
+   - 匿名サインイン後の遷移先（howto-v2へのリダイレクトか、100kin-blog側で制限管理するか）を要検討・要決定
 2. **Firestore設計・接続**
    - `apps` コレクションを作成し、`index.html` / `app-detail.html` の表示をハードコードからFirestore読み込みに変更
    - 管理者ページ（dashboard / inquiries / mail-send）もFirestoreの実データに接続
