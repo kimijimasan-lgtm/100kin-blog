@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理者ログイン — 100均アプリ</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+  header {
+    background: var(--primary);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  header h1 { color: #fff; font-size: 18px; font-weight: 700; }
+  header .badge { color: var(--accent); font-size: 12px; font-weight: 700; }
+
+  .page {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 16px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .card-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; text-align: center; }
+  .card-sub { font-size: 12px; color: var(--muted); margin-bottom: 24px; text-align: center; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+  .field input {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 0.5px solid var(--border); border-radius: 8px;
+    font-family: inherit; background: var(--bg); color: var(--text);
+  }
+
+  .btn {
+    display: block; width: 100%; padding: 12px;
+    border-radius: 8px; font-size: 15px; font-weight: 700;
+    text-align: center; cursor: pointer; border: none;
+    background: var(--accent); color: #fff;
+  }
+  .btn:hover { background: #c98910; }
+  .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .error-msg {
+    background: #fbe3e0; border: 0.5px solid #f0bdb6; color: #b5392f;
+    border-radius: 8px; padding: 10px 12px; font-size: 12px;
+    margin-bottom: 16px; display: none;
+  }
+  .error-msg.show { display: block; }
+
+  .back-link { display: block; text-align: center; font-size: 12px; color: var(--muted); margin-top: 18px; text-decoration: none; }
+  .back-link:hover { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>100均アプリ</h1>
+  <span class="badge">ADMIN</span>
+</header>
+
+<div class="page">
+  <div class="card">
+    <p class="card-title">管理者ログイン</p>
+    <p class="card-sub">Firebase Authに登録済みの管理者アカウントでログインしてください</p>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label>メールアドレス</label>
+        <input type="email" id="email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label>パスワード</label>
+        <input type="password" id="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn" id="submitBtn">ログイン</button>
+    </form>
+
+    <a class="back-link" href="../index.html">← サイトに戻る</a>
+  </div>
+</div>
+
+<script type="module">
+  import { auth } from "../firebase-config.js";
+  import { onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  const ADMIN_EMAIL = "kimijimasan@gmail.com";
+
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.email === ADMIN_EMAIL) {
+      location.href = "dashboard.html";
+    }
+  });
+
+  const form = document.getElementById("loginForm");
+  const errorMsg = document.getElementById("errorMsg");
+  const submitBtn = document.getElementById("submitBtn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorMsg.classList.remove("show");
+    submitBtn.disabled = true;
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      if (cred.user.email !== ADMIN_EMAIL) {
+        errorMsg.textContent = "このアカウントには管理者権限がありません。";
+        errorMsg.classList.add("show");
+        submitBtn.disabled = false;
+        return;
+      }
+      location.href = "dashboard.html";
+    } catch (err) {
+      console.error("管理者ログインに失敗しました", err);
+      errorMsg.textContent = "メールアドレスまたはパスワードが正しくありません。";
+      errorMsg.classList.add("show");
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

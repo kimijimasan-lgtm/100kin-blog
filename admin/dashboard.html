@@ -90,29 +90,31 @@
     <a href="inquiries.html">問い合わせ</a>
     <a href="mail-send.html">一斉メール</a>
     <a href="../index.html">サイトを見る</a>
+    <a href="#" id="logoutLink">ログアウト</a>
   </nav>
 </header>
 
-<div class="layout">
+<div class="layout" id="layout" style="display:none;">
 
   <div class="stats-grid">
     <div class="stat-card">
       <p class="label">購入者数</p>
-      <p class="value">42</p>
+      <p class="value">—</p>
     </div>
     <div class="stat-card">
       <p class="label">ゲスト利用数</p>
-      <p class="value">318</p>
+      <p class="value">—</p>
     </div>
     <div class="stat-card">
       <p class="label">未読の問い合わせ</p>
-      <p class="value accent" id="unreadCount">3</p>
+      <p class="value accent" id="unreadCount">—</p>
     </div>
     <div class="stat-card">
       <p class="label">公開中アプリ</p>
-      <p class="value">2</p>
+      <p class="value" id="publishedCount">—</p>
     </div>
   </div>
+  <p style="font-size:11px; color:var(--muted); margin:-20px 0 32px;">※ 購入者数・ゲスト利用数はStripe／匿名認証ログの集計が未実装のため、現状は未接続です</p>
 
   <p class="section-title">クイックアクセス</p>
   <div class="quick-links">
@@ -138,22 +140,8 @@
     <thead>
       <tr><th>件名</th><th>送信者</th><th>日時</th></tr>
     </thead>
-    <tbody>
-      <tr>
-        <td><span class="unread-dot"></span>同期がうまくいきません</td>
-        <td>tanaka@example.com</td>
-        <td>2026-06-21 18:42</td>
-      </tr>
-      <tr>
-        <td><span class="unread-dot"></span>次回作のリクエスト</td>
-        <td>nat-chan@example.com</td>
-        <td>2026-06-20 09:15</td>
-      </tr>
-      <tr>
-        <td><span class="unread-dot"></span>領収書がほしい</td>
-        <td>mayumine@example.com</td>
-        <td>2026-06-18 21:03</td>
-      </tr>
+    <tbody id="recentInquiries">
+      <tr><td colspan="3">読み込み中...</td></tr>
     </tbody>
   </table>
 
@@ -162,6 +150,77 @@
 <footer>
   © 2026 100均アプリ — siro（管理画面）
 </footer>
+
+<script type="module">
+  import { auth, db } from "../firebase-config.js";
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { collection, query, where, orderBy, limit, getDocs, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const ADMIN_EMAIL = "kimijimasan@gmail.com";
+
+  document.getElementById('logoutLink').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    location.href = 'login.html';
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user || user.email !== ADMIN_EMAIL) {
+      location.href = 'login.html';
+      return;
+    }
+    document.getElementById('layout').style.display = '';
+    loadStats();
+    loadRecentInquiries();
+  });
+
+  async function loadStats() {
+    try {
+      const [unreadSnap, publishedSnap] = await Promise.all([
+        getCountFromServer(query(collection(db, 'inquiries'), where('read', '==', false))),
+        getCountFromServer(query(collection(db, 'apps'), where('published', '==', true)))
+      ]);
+      document.getElementById('unreadCount').textContent = unreadSnap.data().count;
+      document.getElementById('publishedCount').textContent = publishedSnap.data().count;
+    } catch (err) {
+      console.error('統計の読み込みに失敗しました', err);
+    }
+  }
+
+  async function loadRecentInquiries() {
+    const tbody = document.getElementById('recentInquiries');
+    try {
+      const q = query(collection(db, 'inquiries'), orderBy('date', 'desc'), limit(5));
+      const snap = await getDocs(q);
+      tbody.innerHTML = '';
+      snap.forEach(docSnap => {
+        const d = docSnap.data();
+        const tr = document.createElement('tr');
+
+        const subjectTd = document.createElement('td');
+        if (!d.read) {
+          const dot = document.createElement('span');
+          dot.className = 'unread-dot';
+          subjectTd.appendChild(dot);
+        }
+        subjectTd.append(d.subject || '');
+
+        const fromTd = document.createElement('td');
+        fromTd.textContent = d.from || '';
+
+        const dateTd = document.createElement('td');
+        dateTd.textContent = d.date || '';
+
+        tr.append(subjectTd, fromTd, dateTd);
+        tbody.appendChild(tr);
+      });
+      if (!snap.size) tbody.innerHTML = '<tr><td colspan="3">問い合わせはありません</td></tr>';
+    } catch (err) {
+      console.error('問い合わせの読み込みに失敗しました', err);
+      tbody.innerHTML = '<tr><td colspan="3">読み込みに失敗しました</td></tr>';
+    }
+  }
+</script>
 
 </body>
 </html>

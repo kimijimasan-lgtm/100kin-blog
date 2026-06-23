@@ -124,9 +124,10 @@
     </a>
 
     <!-- ゲストボタン + 制限説明 -->
-    <a class="btn btn-guest" href="https://kimijimasan-lgtm.github.io/howto-v2/?guest=true">
+    <a id="guest-btn" class="btn btn-guest" href="https://kimijimasan-lgtm.github.io/howto-v2/?guest=true">
       ゲストで試してみる（無料）
     </a>
+    <p id="guest-error" class="limit-note" style="display:none; color:#b00020; border-color:#e8a0a0; background:#fdf0f0;"></p>
     <div class="limit-note">
       ゲストには次の制限があります：
       <ul>
@@ -143,6 +144,32 @@
   </div>
 </div>
 
-<script type="module" src="firebase-config.js"></script>
+<script type="module">
+  import { auth } from "./firebase-config.js";
+  import { signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  const guestBtn = document.getElementById("guest-btn");
+  const guestError = document.getElementById("guest-error");
+  const guestDestination = guestBtn.href;
+
+  guestBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    guestError.style.display = "none";
+    guestBtn.style.opacity = "0.6";
+    guestBtn.style.pointerEvents = "none";
+
+    signInAnonymously(auth)
+      .then(() => {
+        location.href = guestDestination;
+      })
+      .catch((err) => {
+        console.error("匿名サインインに失敗しました", err);
+        guestBtn.style.opacity = "1";
+        guestBtn.style.pointerEvents = "auto";
+        guestError.textContent = "ログインに失敗しました。通信環境を確認して再度お試しください。";
+        guestError.style.display = "block";
+      });
+  });
+</script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-06-23
+最終更新: 2026-06-23（管理者ページFirestore接続）
 
 ---
 
@@ -49,10 +49,11 @@
     - 「非表示にする」（復元可能）／「削除する」（confirm確認・復元不可）
   - `admin/mail-send.html`: 送信先選択・件名・本文フォーム（送信ボタンは現状モック、実送信は未接続）
   - いずれもダミーデータのみ。Firebase/Firestore連携はまだ無し
-- **管理者ボタン追加（2026-06-22）**:
-  - `index.html` と `app-detail.html` のフッターに小さく目立たない「管理者」ボタンを設置
-  - クリックで `prompt()` パスワード入力 → 正しければ `admin/dashboard.html` へ遷移、誤りなら「パスワードが違います」
-  - パスワードは `siro100kin`（クライアントJSにハードコード。本格的な認証ではなく簡易的な目隠し）
+- **管理者ボタン追加（2026-06-22）→ Firebase Authに置き換え（2026-06-23）**:
+  - `index.html` と `app-detail.html` のフッターに小さく目立たない「管理者」リンクを設置（`admin/login.html` へ直接遷移、旧 `prompt()` パスワードは削除済み）
+  - `admin/login.html` を新規作成: Firebase Auth（メール/パスワード）でログイン。管理者メールは `kimijimasan@gmail.com` のみ許可（`auth.currentUser.email` チェック）
+  - `admin/dashboard.html` / `admin/inquiries.html` / `admin/mail-send.html` の3ページすべてに `onAuthStateChanged` ガードを追加。未ログイン or 管理者メール以外は自動で `login.html` にリダイレクト。各ページのnavに「ログアウト」リンクを追加（`signOut()`）
+  - **アカウント作成はFirebase Console側でユーザー本人が実施**（Authentication > Users、`kimijimasan@gmail.com`）。Claude側はパスワードを扱っていない
 
 ---
 
@@ -60,9 +61,9 @@
 
 | 要素 | 選択肢 | 状態 |
 |------|--------|------|
-| ホスティング | Firebase Hosting | 未設定（現状はローカルHTML＋GitHub） |
-| 認証 | Firebase Auth（匿名＋メール/Google） | 未実装 |
-| DB | Firestore | 未実装（現状は全ページ静的ダミーデータ） |
+| ホスティング | Firebase Hosting | デプロイ済み（https://apps100kin.web.app） |
+| 認証 | Firebase Auth（匿名＋メール/Google） | ゲスト匿名認証・管理者メール/パスワード認証は実装済み。Google連携は未使用 |
+| DB | Firestore | `index.html`/`app-detail.html` は接続済み（管理者ページ3つは未接続、ダミーデータのまま） |
 | 決済 | Stripe Payment Links | テストリンクのみ設置済み（本番リンク未発行） |
 | メール送信 | Firebase Functions + Resend/SendGrid | 未実装（mail-send.htmlはUIのみ） |
 | 専用メールアドレス | apps100kin@gmail.com | 各ページのmailtoリンクに設定済み |
@@ -76,6 +77,7 @@
 - Firestore: `(default)` データベースをasia-northeast1に作成済み。`firestore.rules` は現状 `allow read, write: if false`（全拒否）のデフォルト安全設定のままデプロイ済み（スキーマ未設計のため）
 - `.firebaserc` / `firebase.json` / `firestore.indexes.json` を追加済み
 - howto-v2側のFirebaseプロジェクト（`torisetu-234c3`）とは別プロジェクト。統合方針（ゲストボタンの遷移先・UID連携方法）は未決定
+- Firebase Hosting: `firebase deploy --only hosting` でデプロイ済み（2026-06-23）。公開URL `https://apps100kin.web.app`。`firebase.json` の `public: "."` 設定により `index.html`/`app-detail.html`/`login.html`/`admin/` がそのまま公開される（`src/`・`*.md`・`save.bat` は ignore 設定で除外済み）
 
 ---
 
@@ -83,22 +85,39 @@
 
 優先度の高いものから:
 
-1. **ゲストボタンとFirebase匿名認証の接続**（認証基盤は構築済み、接続のみ未実装）
-   - `login.html` の「ゲストで試してみる」ボタン押下時に `signInAnonymously()` を呼ぶ
-   - 匿名サインイン後の遷移先（howto-v2へのリダイレクトか、100kin-blog側で制限管理するか）を要検討・要決定
-2. **Firestore設計・接続**
-   - `apps` コレクションを作成し、`index.html` / `app-detail.html` の表示をハードコードからFirestore読み込みに変更
-   - 管理者ページ（dashboard / inquiries / mail-send）もFirestoreの実データに接続
-3. **ゲスト制限の実装**（パネル3枚・カード10枚）— 現状はlogin.html上の説明文のみで、実際の制限ロジックは未実装
-4. **Stripe本番リンクの発行**（現在はtestモードリンク）
-5. **一斉メール送信の実送信機能**（Firebase Functions + Resend/SendGridの実装）
-6. **管理者認証の強化**（現状はクライアントJSの平文パスワード比較のみ。Firebase Authの管理者ロール判定等への置き換えを検討）
+1. ~~**ゲストボタンとFirebase匿名認証の接続**~~ → **完了（2026-06-23）**
+   - `login.html` の「ゲストで試してみる」ボタン押下時に `signInAnonymously()` を呼び、成功後は従来通り `howto-v2`（`?guest=true`）へ遷移するよう実装済み
+   - 失敗時はボタン下にエラーメッセージを表示
+   - 遷移先の最終方針（howto-v2継続 or 100kin-blog側で制限管理）はユーザー判断で「今回は匿名認証のみ接続し保留」。制限ロジック設計（3番）は引き続き未決定のまま
+2. ~~**Firestore設計・接続（基本部分）**~~ → **完了（2026-06-23）**
+   - `apps` コレクション（doc id: `memo-sync`）＋ `apps/{id}/reviews` サブコレクションを設計・作成済み
+   - `index.html`: `published==true` でクエリし `order` 順に複数アプリをカード表示できるよう改修（テンプレート化、2作目以降にも対応）
+   - `app-detail.html`: URLクエリ `?app=<id>`（省略時は `memo-sync`）でFirestoreから当該アプリのドキュメント＋公開レビュー（`hidden==false`）を取得して表示
+   - `firestore.rules`: `apps/{appId}` は `published==true` のときのみ公開read許可、`reviews` は `hidden==false` のときのみ公開read許可。write はクライアントから常に拒否（管理データ追加・編集は今後Firebase Console or Admin SDK経由）
+   - `firestore.indexes.json`: `apps` コレクションに `published ASC, order ASC` の複合インデックスを追加済み
+   - 残課題: 新しいレビュー投稿・問い合わせ送信のフォーム自体は未実装（現状投稿経路がないため、Firestoreへの`create`は常に拒否したまま。データ追加は今後Firebase Console等の手動投入が必要）
+3. ~~**管理者ページのFirestore接続**~~ → **完了（2026-06-23）**
+   - `inquiries` コレクション（top-level）を新設。`admin/dashboard.html`（未読数・公開アプリ数の集計、最近の問い合わせ表）、`admin/inquiries.html`（問い合わせ一覧・レビュー一覧）をFirestore接続
+   - レビュー管理の「非表示にする」「復元する」「削除する」ボタンは実際に `apps/{appId}/reviews/{reviewId}` を `updateDoc`/`deleteDoc` する形で接続済み（即時反映を確認済み）
+   - ~~admin認証は `prompt()` の平文パスワード比較のみ~~ → **2026-06-23、Firebase Authに置き換え完了**（詳細は次項）
+   - `collectionGroup('reviews')` クエリ（admin一覧で全アプリのレビューを横断取得）には、`match /apps/{appId}/reviews/{reviewId}` の入れ子ルールとは別に `match /{path=**}/reviews/{reviewId}` というワイルドカードルールが必要だった（Firestoreの仕様。ハマりポイントとして記録）
+   - `admin/mail-send.html` は接続せず据え置き：購入者数・送信先件数のデータソース（Stripe購入記録）がまだ存在しないため、Firestoreに繋ぐ実体がない。画面上に「未接続」の注記を追加
+   - `admin/dashboard.html` の購入者数・ゲスト利用数も同様の理由で `—` 表示＋注記に変更（ダミーの「42」「318」は削除）
+   - シード時に動作確認用として `apps/diabetes-counter`（`published: false` の未公開アプリ）を追加。公開サイトには出ないが、レビュー管理一覧の動作確認に使っている
+3. ~~**管理者認証の強化**~~ → **完了（2026-06-23）**
+   - `admin/login.html` 新規作成、Firebase Auth（メール/パスワード）でログイン。許可メールは `kimijimasan@gmail.com` のみ（`firestore.rules` の `isAdmin()` 関数でも同じメールをチェック）
+   - `admin/dashboard.html` / `inquiries.html` / `mail-send.html` に `onAuthStateChanged` ガード＋ログアウトリンクを追加
+   - `firestore.rules` を全面更新: `apps`/`reviews`/`inquiries` の管理者向け読み書きは `isAdmin()` 必須に。公開サイト向けの `published==true`／`hidden==false` 条件は維持（ORで両立）
+   - 残課題: Googleログイン等の追加プロバイダーは未設定。管理者が複数人になる場合はメール1件のハードコードをFirestore側の `admins` コレクション等に変更する必要あり
+4. **ゲスト制限の実装**（パネル3枚・カード10枚）— 現状はlogin.html上の説明文のみで、実際の制限ロジックは未実装
+5. **Stripe本番リンクの発行**（現在はtestモードリンク）
+6. **一斉メール送信の実送信機能**（Firebase Functions + Resend/SendGridの実装）
 7. **大量アクセス対策**（設計書6章）— Cloudflare導入、ウェイティングリスト等は紹介前に着手
 
 ---
 
 ## 6. 注意事項・既知の制約
 
-- `admin/` 配下は認証なしで誰でもURLを直接開けば見える状態（パスワードボタンはあくまで一般ユーザー向けの目隠し）。Firebase Auth導入時に管理者ロールでアクセス制限する必要あり。
+- ~~`admin/` 配下は認証なしで誰でもURLを直接開けば見える状態~~ → 2026-06-23、Firebase Auth導入により解消。`onAuthStateChanged` ガードで未ログイン/非管理者は `login.html` にリダイレクトされる。
 - `src/` 配下のファイルは古いバックアップなので、編集対象は常にルート直下のファイルにすること。
 - `save.bat` はユーザーがダブルクリックで `git add . && commit "auto save <日時>" && push` を実行する。Claude側で別メッセージでコミットしようとしても、既にauto saveで取り込まれて差分が無いことがある（コミット前に `git status` で確認すること）。

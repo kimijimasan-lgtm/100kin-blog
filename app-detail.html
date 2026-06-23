@@ -189,82 +189,53 @@
   <a href="index.html">ホーム</a> › PCスマホ連動メモ
 </div>
 
-<div class="layout">
+<div class="layout" id="layout">
+  <p style="text-align:center; color:var(--muted); font-size:13px; grid-column: 1 / -1;">読み込み中...</p>
+</div>
+
+<template id="detailTemplate">
 
   <!-- 左 1/4：縦長ビューワー -->
   <div>
     <div class="viewer-wrap">
-      <div class="screenshot-main" id="mainViewer">📱</div>
-      <div class="arrow left"  onclick="move(-1)">&#8249;</div>
-      <div class="arrow right" onclick="move(1)">&#8250;</div>
+      <div class="screenshot-main" data-role="viewer"></div>
+      <div class="arrow left"  data-role="prev">&#8249;</div>
+      <div class="arrow right" data-role="next">&#8250;</div>
     </div>
-    <p class="slide-label" id="slideLabel">スマホのホーム画面</p>
+    <p class="slide-label" data-role="slideLabel"></p>
   </div>
 
   <!-- 中 2/4：解説 -->
   <div>
-    <p class="app-name">PCスマホ連動メモ</p>
-    <p class="app-catch">DropboxやiCloudなしでPC・スマホ間同期</p>
+    <p class="app-name" data-role="name"></p>
+    <p class="app-catch" data-role="catch"></p>
     <div class="stars-row">
-      <span class="stars">★★★★★</span>
-      <a class="review-link" href="#reviews">12件のレビュー</a>
+      <span class="stars" data-role="stars"></span>
+      <a class="review-link" href="#reviews" data-role="reviewCount"></a>
     </div>
 
     <p class="features-title">このアプリでできること</p>
-    <ul class="features-list">
-      <li>DropboxやiCloudなしでPC・スマホ間同期</li>
-      <li>カードとパネルで情報をすっきり整理</li>
-      <li>カードでは2つのモードを実装</li>
-      <li>カテゴリ間でカードや文章の入れ替えも</li>
-      <li>WindowsもMacもiPhoneもAndroidも対応</li>
-      <li>インストール不要・ブラウザからすぐ使える</li>
-    </ul>
+    <ul class="features-list" data-role="features"></ul>
 
-    <table class="spec-table">
-      <tr><td>対応OS</td><td>Windows / Mac / iPhone / Android</td></tr>
-      <tr><td>形式</td><td>PWA（インストール不要）</td></tr>
-      <tr><td>開発者</td><td>siro</td></tr>
-      <tr><td>更新日</td><td>2026年6月</td></tr>
-    </table>
+    <table class="spec-table" data-role="specs"></table>
 
     <!-- レビュー -->
     <div id="reviews" style="margin-top:32px;">
       <p class="section-title">カスタマーレビュー</p>
-      <div class="review-card">
-        <div class="review-header">
-          <div class="avatar">な</div>
-          <div>
-            <p class="reviewer">なっちゃん</p>
-            <p class="review-meta">2026年1月26日</p>
-          </div>
-        </div>
-        <div class="review-stars">★★★★☆</div>
-        <p class="review-text">仕事のメモをPCで入力して、外出先でスマホで確認できて便利です。シンプルで使いやすいです。</p>
-      </div>
-      <div class="review-card">
-        <div class="review-header">
-          <div class="avatar">マ</div>
-          <div>
-            <p class="reviewer">マユミーヌ</p>
-            <p class="review-meta">2026年1月1日</p>
-          </div>
-        </div>
-        <div class="review-stars">★★★★★</div>
-        <p class="review-text">Dropboxの契約を解約できました。これで十分です。ありがとうございます。</p>
-      </div>
+      <div data-role="reviewList"></div>
     </div>
   </div>
 
   <!-- 右 1/4：購入ボックス -->
   <div>
     <div class="purchase-box">
-      <p class="price">¥100<br><span>（買い切り）</span></p>
+      <p class="price" data-role="price"></p>
 
-      <a class="btn btn-primary" href="https://buy.stripe.com/test_5kQ28s9Q2ccj0pt9Kr7Re01" target="_blank">
+      <a class="btn btn-primary" data-role="stripeLink" target="_blank">
         購入してログイン
       </a>
 
-      <a class="btn btn-secondary" href="https://kimijimasan-lgtm.github.io/howto-v2/?guest=true">
+      <a class="btn btn-secondary" data-role="guestLink">
         ゲストで試してみる
       </a>
 
@@ -274,44 +245,122 @@
     </div>
   </div>
 
-</div>
+</template>
 
 <footer>
   <a href="index.html">ホームに戻る</a>
   <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
   <br><br>
   © 2026 100均アプリ — siro
-  <button class="admin-link" onclick="adminLogin()">管理者</button>
+  <a class="admin-link" href="admin/login.html">管理者</a>
 </footer>
 
-<script>
-  const slides = [
-    { emoji: '📱', label: 'スマホのホーム画面', bg: 'linear-gradient(135deg,#d4e8d0,#a8cfa0)' },
-    { emoji: '🖥️', label: 'PCのホーム画面',    bg: 'linear-gradient(135deg,#d0dff5,#90b4e8)' },
-    { emoji: '🗂️', label: 'カード一覧',         bg: 'linear-gradient(135deg,#f5eac8,#e8c878)' },
-    { emoji: '📄', label: 'カードの中身',        bg: 'linear-gradient(135deg,#c8eae5,#78cec4)' },
-  ];
-  let cur = 0;
-  const viewer = document.getElementById('mainViewer');
-  const label  = document.getElementById('slideLabel');
+<script type="module">
+  import { db } from "./firebase-config.js";
+  import { doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  function goTo(i) {
-    cur = (i + slides.length) % slides.length;
-    viewer.textContent = slides[cur].emoji;
-    viewer.style.background = slides[cur].bg;
-    label.textContent = slides[cur].label;
+  function starString(stars) {
+    const full = Math.round(stars || 0);
+    return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
-  function move(d) { goTo(cur + d); }
 
-  function adminLogin() {
-    const pw = prompt('管理者パスワードを入力してください');
-    if (pw === null) return;
-    if (pw === 'siro100kin') {
-      window.location.href = 'admin/dashboard.html';
-    } else {
-      alert('パスワードが違います');
+  function specLabel(key) {
+    return { os: '対応OS', format: '形式', developer: '開発者', updatedAt: '更新日' }[key] || key;
+  }
+
+  async function loadApp() {
+    const params = new URLSearchParams(window.location.search);
+    const appId = params.get('app') || 'memo-sync';
+    const layout = document.getElementById('layout');
+
+    try {
+      const appSnap = await getDoc(doc(db, 'apps', appId));
+      if (!appSnap.exists()) throw new Error('app not found');
+      const appDoc = appSnap.data();
+
+      const reviewsQuery = query(collection(db, 'apps', appId, 'reviews'), where('hidden', '==', false));
+      const reviewsSnap = await getDocs(reviewsQuery);
+      const reviews = [];
+      reviewsSnap.forEach(r => reviews.push(r.data()));
+
+      const tpl = document.getElementById('detailTemplate').content.cloneNode(true);
+      layout.innerHTML = '';
+      layout.appendChild(tpl);
+
+      document.title = `${appDoc.name} — 100均アプリ`;
+      layout.querySelector('[data-role="name"]').textContent = appDoc.name || '';
+      layout.querySelector('[data-role="catch"]').textContent = (appDoc.catchWords || []).join('');
+      layout.querySelector('[data-role="stars"]').textContent = starString(appDoc.stars);
+      layout.querySelector('[data-role="reviewCount"]').textContent = `${reviews.length}件のレビュー`;
+
+      const featuresEl = layout.querySelector('[data-role="features"]');
+      (appDoc.features || []).forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = f;
+        featuresEl.appendChild(li);
+      });
+
+      const specsEl = layout.querySelector('[data-role="specs"]');
+      Object.entries(appDoc.specs || {}).forEach(([key, value]) => {
+        const tr = document.createElement('tr');
+        const tdLabel = document.createElement('td');
+        tdLabel.textContent = specLabel(key);
+        const tdValue = document.createElement('td');
+        tdValue.textContent = value;
+        tr.appendChild(tdLabel);
+        tr.appendChild(tdValue);
+        specsEl.appendChild(tr);
+      });
+
+      const reviewListEl = layout.querySelector('[data-role="reviewList"]');
+      reviews.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'review-card';
+        card.innerHTML = `
+          <div class="review-header">
+            <div class="avatar">${(r.author || '?').charAt(0)}</div>
+            <div>
+              <p class="reviewer"></p>
+              <p class="review-meta"></p>
+            </div>
+          </div>
+          <div class="review-stars"></div>
+          <p class="review-text"></p>
+        `;
+        card.querySelector('.reviewer').textContent = r.author || '';
+        card.querySelector('.review-meta').textContent = r.date || '';
+        card.querySelector('.review-stars').textContent = starString(r.stars);
+        card.querySelector('.review-text').textContent = r.text || '';
+        reviewListEl.appendChild(card);
+      });
+
+      layout.querySelector('[data-role="price"]').innerHTML = `¥${appDoc.price ?? ''}<br><span>（買い切り）</span>`;
+      layout.querySelector('[data-role="stripeLink"]').href = appDoc.stripeLink || '#';
+      layout.querySelector('[data-role="guestLink"]').href = appDoc.guestLink || '#';
+
+      const slides = appDoc.slides || [];
+      let cur = 0;
+      const viewerEl = layout.querySelector('[data-role="viewer"]');
+      const labelEl  = layout.querySelector('[data-role="slideLabel"]');
+
+      function goTo(i) {
+        if (!slides.length) return;
+        cur = (i + slides.length) % slides.length;
+        viewerEl.textContent = slides[cur].emoji;
+        viewerEl.style.background = slides[cur].bg;
+        labelEl.textContent = slides[cur].label;
+      }
+      goTo(0);
+      layout.querySelector('[data-role="prev"]').addEventListener('click', () => goTo(cur - 1));
+      layout.querySelector('[data-role="next"]').addEventListener('click', () => goTo(cur + 1));
+
+    } catch (err) {
+      console.error('アプリ詳細の読み込みに失敗しました', err);
+      layout.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px; grid-column: 1 / -1;">読み込みに失敗しました。時間をおいて再度お試しください。</p>';
     }
   }
+
+  loadApp();
 </script>
 
 </body>

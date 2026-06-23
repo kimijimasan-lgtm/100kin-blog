@@ -111,10 +111,11 @@
     <a href="inquiries.html" class="active">問い合わせ</a>
     <a href="mail-send.html">一斉メール</a>
     <a href="../index.html">サイトを見る</a>
+    <a href="#" id="logoutLink">ログアウト</a>
   </nav>
 </header>
 
-<div class="layout">
+<div class="layout" id="layout" style="display:none;">
 
   <p class="page-title">問い合わせ一覧</p>
   <p class="page-sub">購入ユーザーからのメッセージを時系列で表示しています</p>
@@ -143,23 +144,43 @@
   © 2026 100均アプリ — siro（管理画面）
 </footer>
 
-<script>
-  const inquiries = [
-    { subject: '同期がうまくいきません', from: 'tanaka@example.com', date: '2026-06-21 18:42', body: 'PCで入力したメモがスマホ側に反映されないことがあります。ブラウザはChromeを使っています。確認していただけますか？', unread: true },
-    { subject: '次回作のリクエスト', from: 'nat-chan@example.com', date: '2026-06-20 09:15', body: '糖尿人のカウンター、楽しみにしています！血糖値の記録もできるようになると嬉しいです。', unread: true },
-    { subject: '領収書がほしい', from: 'mayumine@example.com', date: '2026-06-18 21:03', body: '会社の経費精算用に領収書を発行していただくことは可能でしょうか。', unread: true },
-    { subject: '使い方について', from: 'satoh@example.com', date: '2026-06-10 12:30', body: 'カードを別のパネルに移動する方法が分かりません。教えてください。', unread: false },
-  ];
+<script type="module">
+  import { auth, db } from "../firebase-config.js";
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    collection, query, orderBy, getDocs, collectionGroup,
+    doc, updateDoc, deleteDoc
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
+  const ADMIN_EMAIL = "kimijimasan@gmail.com";
+
+  document.getElementById('logoutLink').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    location.href = 'login.html';
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user || user.email !== ADMIN_EMAIL) {
+      location.href = 'login.html';
+      return;
+    }
+    document.getElementById('layout').style.display = '';
+    loadInquiries();
+    loadReviews();
+  });
+
+  // --- 問い合わせ一覧 ---
+  let inquiries = [];
   const listEl = document.getElementById('inquiryList');
   let filter = 'all';
 
-  function render() {
-    const items = filter === 'unread' ? inquiries.filter(i => i.unread) : inquiries;
+  function renderInquiries() {
+    const items = filter === 'unread' ? inquiries.filter(i => !i.read) : inquiries;
     listEl.innerHTML = items.map(i => `
-      <div class="inquiry-card ${i.unread ? 'unread' : ''}">
+      <div class="inquiry-card ${!i.read ? 'unread' : ''}">
         <div class="inquiry-head">
-          ${i.unread ? '<span class="unread-dot"></span>' : ''}
+          ${!i.read ? '<span class="unread-dot"></span>' : ''}
           <span class="inquiry-subject">${i.subject}</span>
           <span class="inquiry-meta">${i.date}</span>
         </div>
@@ -169,7 +190,18 @@
           <a href="mailto:${i.from}?subject=Re: ${encodeURIComponent(i.subject)}">返信する</a>
         </div>
       </div>
-    `).join('');
+    `).join('') || '<p class="page-sub">該当する問い合わせはありません</p>';
+  }
+
+  async function loadInquiries() {
+    try {
+      const snap = await getDocs(query(collection(db, 'inquiries'), orderBy('date', 'desc')));
+      inquiries = snap.docs.map(d => d.data());
+      renderInquiries();
+    } catch (err) {
+      console.error('問い合わせの読み込みに失敗しました', err);
+      listEl.innerHTML = '<p class="page-sub">読み込みに失敗しました</p>';
+    }
   }
 
   document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
@@ -177,21 +209,12 @@
       document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       filter = btn.dataset.filter;
-      render();
+      renderInquiries();
     });
   });
 
-  render();
-
   // --- レビュー管理 ---
-  const reviews = [
-    { id: 1, app: 'PCスマホ連動メモ', user: 'なっちゃん',   rating: 4, date: '2026-01-26', comment: '仕事のメモをPCで入力して、外出先でスマホで確認できて便利です。シンプルで使いやすいです。', status: 'visible' },
-    { id: 2, app: 'PCスマホ連動メモ', user: 'マユミーヌ',   rating: 5, date: '2026-01-01', comment: 'Dropboxの契約を解約できました。これで十分です。ありがとうございます。', status: 'visible' },
-    { id: 3, app: 'PCスマホ連動メモ', user: 'けんと',       rating: 1, date: '2026-06-15', comment: '同期が頻繁に失敗します。直してほしいです。', status: 'visible' },
-    { id: 4, app: '糖尿人のカウンター', user: 'ひろき',     rating: 2, date: '2026-06-12', comment: '入力項目が多くて使いにくいと感じました。もう少し簡略化してほしいです。', status: 'visible' },
-    { id: 5, app: 'PCスマホ連動メモ', user: 'あゆ',         rating: 1, date: '2026-06-08', comment: '広告みたいなレビューを投稿していた荒らしユーザー（運営にて非表示済み）。', status: 'hidden' },
-  ];
-
+  let reviews = [];
   const reviewListEl = document.getElementById('reviewList');
   let reviewFilter = 'all';
 
@@ -200,55 +223,78 @@
   function renderReviews() {
     let items = reviews;
     if (reviewFilter === 'flagged') {
-      items = reviews.filter(r => r.rating <= 2 && r.status !== 'deleted');
+      items = reviews.filter(r => r.stars <= 2);
     } else if (reviewFilter === 'hidden') {
-      items = reviews.filter(r => r.status === 'hidden');
-    } else {
-      items = reviews.filter(r => r.status !== 'deleted');
+      items = reviews.filter(r => r.hidden);
     }
 
     reviewListEl.innerHTML = items.map(r => {
-      const flagged = r.rating <= 2;
-      const isHidden = r.status === 'hidden';
+      const flagged = r.stars <= 2;
       return `
-      <div class="review-card ${isHidden ? 'hidden-review' : ''}">
+      <div class="review-card ${r.hidden ? 'hidden-review' : ''}">
         <div class="review-head">
-          <span class="review-stars">${starString(r.rating)}</span>
-          <span class="review-user">${r.user}</span>
-          <span class="review-app">／ ${r.app}</span>
+          <span class="review-stars">${starString(r.stars)}</span>
+          <span class="review-user">${r.author}</span>
+          <span class="review-app">／ ${r.appName}</span>
           ${flagged ? '<span class="flag-badge">要確認</span>' : ''}
-          ${isHidden ? '<span class="hidden-badge">非表示中</span>' : ''}
+          ${r.hidden ? '<span class="hidden-badge">非表示中</span>' : ''}
           <span class="review-meta">${r.date}</span>
         </div>
-        <p class="review-comment">${r.comment}</p>
+        <p class="review-comment">${r.text}</p>
         <div class="review-actions">
-          ${isHidden
-            ? `<button class="btn-restore" onclick="restoreReview(${r.id})">復元する</button>`
-            : `<button class="btn-hide" onclick="hideReview(${r.id})">非表示にする</button>`}
-          <button class="btn-delete" onclick="deleteReview(${r.id})">削除する</button>
+          ${r.hidden
+            ? `<button class="btn-restore" data-action="restore" data-app="${r.appId}" data-id="${r.id}">復元する</button>`
+            : `<button class="btn-hide" data-action="hide" data-app="${r.appId}" data-id="${r.id}">非表示にする</button>`}
+          <button class="btn-delete" data-action="delete" data-app="${r.appId}" data-id="${r.id}">削除する</button>
         </div>
       </div>
       `;
     }).join('') || '<p class="page-sub">該当するレビューはありません</p>';
   }
 
-  function hideReview(id) {
-    const r = reviews.find(x => x.id === id);
-    if (r) r.status = 'hidden';
-    renderReviews();
-  }
+  reviewListEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const { action, app: appId, id } = btn.dataset;
+    const ref = doc(db, 'apps', appId, 'reviews', id);
 
-  function restoreReview(id) {
-    const r = reviews.find(x => x.id === id);
-    if (r) r.status = 'visible';
-    renderReviews();
-  }
+    try {
+      if (action === 'hide') {
+        await updateDoc(ref, { hidden: true });
+        reviews.find(r => r.appId === appId && r.id === id).hidden = true;
+      } else if (action === 'restore') {
+        await updateDoc(ref, { hidden: false });
+        reviews.find(r => r.appId === appId && r.id === id).hidden = false;
+      } else if (action === 'delete') {
+        if (!confirm('このレビューを削除します。削除すると復元できません。よろしいですか？\n（先に「非表示にする」を使うことをおすすめします）')) return;
+        await deleteDoc(ref);
+        reviews = reviews.filter(r => !(r.appId === appId && r.id === id));
+      }
+      renderReviews();
+    } catch (err) {
+      console.error('レビュー操作に失敗しました', err);
+      alert('操作に失敗しました。時間をおいて再度お試しください。');
+    }
+  });
 
-  function deleteReview(id) {
-    if (!confirm('このレビューを削除します。削除すると復元できません。よろしいですか？\n（先に「非表示にする」を使うことをおすすめします）')) return;
-    const r = reviews.find(x => x.id === id);
-    if (r) r.status = 'deleted';
-    renderReviews();
+  async function loadReviews() {
+    try {
+      const [appsSnap, reviewsSnap] = await Promise.all([
+        getDocs(collection(db, 'apps')),
+        getDocs(collectionGroup(db, 'reviews'))
+      ]);
+      const appNames = {};
+      appsSnap.forEach(d => { appNames[d.id] = d.data().name; });
+
+      reviews = reviewsSnap.docs.map(d => {
+        const appId = d.ref.parent.parent.id;
+        return { id: d.id, appId, appName: appNames[appId] || appId, ...d.data() };
+      });
+      renderReviews();
+    } catch (err) {
+      console.error('レビューの読み込みに失敗しました', err);
+      reviewListEl.innerHTML = '<p class="page-sub">読み込みに失敗しました</p>';
+    }
   }
 
   document.querySelectorAll('.filter-btn[data-review-filter]').forEach(btn => {
@@ -260,7 +306,6 @@
     });
   });
 
-  renderReviews();
 </script>
 
 </body>

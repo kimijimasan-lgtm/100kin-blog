@@ -1,7 +1,39 @@
 rules_version = '2';
 
+// admin/ 配下は Firebase Auth（メール/パスワード）でログインしたユーザーのうち
+// 管理者メールアドレスのみアクセス可能。
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'kimijimasan@gmail.com';
+    }
+
+    match /apps/{appId} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+
+      match /reviews/{reviewId} {
+        allow read: if resource.data.hidden == false || isAdmin();
+        allow update, delete: if isAdmin();
+        allow create: if false;
+      }
+    }
+
+    // collectionGroup('reviews') クエリ用（管理画面のレビュー一覧）。
+    // 上の /apps/{appId}/reviews ルールは個別サブコレクションへのアクセスのみに適用され、
+    // 複数アプリをまとめて読むcollection groupクエリには別途ワイルドカードルールが必要。
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+      allow create: if false;
+    }
+
+    match /inquiries/{inquiryId} {
+      allow read: if isAdmin();
+      allow update: if isAdmin();
+      allow create, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

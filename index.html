@@ -169,14 +169,17 @@
   <span class="catch">自分（開発者）が逆の立場でも「100円なら払ってもいいな！？」と思えるものをつくりました。</span>
 </header>
 
-<section class="app-section">
+<section class="app-section" id="appList">
+  <p style="text-align:center; color:var(--muted); font-size:13px;">読み込み中...</p>
+</section>
 
+<template id="appCardTemplate">
   <div class="app-header">
-    <div class="app-icon">📝</div>
+    <div class="app-icon"></div>
     <div class="app-info">
-      <p class="name">PCスマホ連動メモ</p>
-      <span class="stars">★★★★★</span>
-      <a class="detail-link" href="app-detail.html">詳細・購入 →</a>
+      <p class="name"></p>
+      <span class="stars"></span>
+      <a class="detail-link">詳細・購入 →</a>
     </div>
   </div>
 
@@ -184,85 +187,118 @@
 
     <!-- 左 1/4：縦長ビューワー -->
     <div>
-      <div class="viewer" id="mainViewer" onclick="window.location.href='app-detail.html'">
-        <div class="emoji" id="mainEmoji">📱</div>
-        <div class="arrow left" onclick="event.stopPropagation(); move(-1)">&#8249;</div>
-        <div class="arrow right" onclick="event.stopPropagation(); move(1)">&#8250;</div>
+      <div class="viewer" data-role="viewer">
+        <div class="emoji" data-role="emoji"></div>
+        <div class="arrow left" data-role="prev">&#8249;</div>
+        <div class="arrow right" data-role="next">&#8250;</div>
       </div>
-      <p style="text-align:center; font-size:11px; color:var(--muted); margin-top:8px;" id="slideLabel">スマホのホーム画面</p>
+      <p style="text-align:center; font-size:11px; color:var(--muted); margin-top:8px;" data-role="slideLabel"></p>
     </div>
 
     <!-- 中 2/4：解説 -->
     <div class="desc-col">
       <p class="section-label">このアプリでできること</p>
-      <ul>
-        <li>DropboxやiCloudなしでPC・スマホ間同期</li>
-        <li>カードとパネルで情報をすっきり整理</li>
-        <li>カードでは2つのモードを実装</li>
-        <li>カテゴリ間でカードや文章の入れ替えも</li>
-        <li>WindowsもMacもiPhoneもAndroidも対応</li>
-        <li>インストール不要・ブラウザからすぐ使える</li>
-      </ul>
+      <ul data-role="features"></ul>
       <div class="price-row">
-        <span class="price">¥100</span>
-        <span class="price-note">買い切り・追加料金なし</span>
+        <span class="price" data-role="price"></span>
+        <span class="price-note" data-role="priceNote"></span>
       </div>
-      <a class="btn" href="app-detail.html">詳細・購入ページへ</a>
+      <a class="btn" data-role="detailBtn">詳細・購入ページへ</a>
     </div>
 
     <!-- 右 1/4：キャッチフレーズ -->
     <div class="catch-col">
       <div class="catch-block">
-        <span class="catch-word">DropboxやiCloudなしで</span>
-        <span class="catch-word accent">PC・スマホ同期</span>
+        <span class="catch-word" data-role="catch1"></span>
+        <span class="catch-word accent" data-role="catch2"></span>
       </div>
     </div>
 
   </div>
-
-  <!-- 2作目以降のスペース -->
-  <div style="margin-top:60px; padding:48px 24px; border:2px dashed var(--border); border-radius:var(--radius); text-align:center; color:var(--muted); font-size:14px;">
-    この下は2作目以降が入るスペースです
-  </div>
-
-</section>
+</template>
 
 <footer>
   <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
   <br><br>
   © 2026 100均アプリ — siro
-  <button class="admin-link" onclick="adminLogin()">管理者</button>
+  <a class="admin-link" href="admin/login.html">管理者</a>
 </footer>
 
-<script>
-  const slides = [
-    { emoji: '📱', label: 'スマホのホーム画面', bg: 'linear-gradient(160deg,#d4e8d0,#8ec488)' },
-    { emoji: '🖥️', label: 'PCのホーム画面',    bg: 'linear-gradient(160deg,#d0dff5,#90b4e8)' },
-    { emoji: '🗂️', label: 'カード一覧',         bg: 'linear-gradient(160deg,#f5eac8,#e8c878)' },
-    { emoji: '📄', label: 'カードの中身',        bg: 'linear-gradient(160deg,#c8eae5,#78cec4)' },
-  ];
-  let cur = 0;
-  const viewer = document.getElementById('mainViewer');
-  const emoji  = document.getElementById('mainEmoji');
-  const label  = document.getElementById('slideLabel');
+<script type="module">
+  import { db } from "./firebase-config.js";
+  import { collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  function goTo(i) {
-    cur = (i + slides.length) % slides.length;
-    emoji.textContent = slides[cur].emoji;
-    viewer.style.background = slides[cur].bg;
-    label.textContent = slides[cur].label;
+  function starString(stars) {
+    const full = Math.round(stars || 0);
+    return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
-  function move(d) { goTo(cur + d); }
 
-  function adminLogin() {
-    const pw = prompt('管理者パスワードを入力してください');
-    if (pw === null) return;
-    if (pw === 'siro100kin') {
-      window.location.href = 'admin/dashboard.html';
-    } else {
-      alert('パスワードが違います');
+  function renderApp(appDoc) {
+    const tpl = document.getElementById('appCardTemplate').content.cloneNode(true);
+    const card = document.createElement('div');
+    card.appendChild(tpl);
+
+    const detailLink = `app-detail.html?app=${encodeURIComponent(appDoc.id)}`;
+
+    card.querySelector('.app-icon').textContent = appDoc.icon || '📦';
+    card.querySelector('.name').textContent = appDoc.name || '';
+    card.querySelector('.stars').textContent = starString(appDoc.stars);
+    card.querySelector('.detail-link').href = detailLink;
+    card.querySelector('[data-role="detailBtn"]').href = detailLink;
+    card.querySelector('[data-role="price"]').textContent = `¥${appDoc.price ?? ''}`;
+    card.querySelector('[data-role="priceNote"]').textContent = appDoc.priceNote || '';
+    card.querySelector('[data-role="catch1"]').textContent = (appDoc.catchWords && appDoc.catchWords[0]) || '';
+    card.querySelector('[data-role="catch2"]').textContent = (appDoc.catchWords && appDoc.catchWords[1]) || '';
+
+    const featuresEl = card.querySelector('[data-role="features"]');
+    (appDoc.features || []).forEach(f => {
+      const li = document.createElement('li');
+      li.textContent = f;
+      featuresEl.appendChild(li);
+    });
+
+    const slides = appDoc.slides || [];
+    let cur = 0;
+    const viewerEl = card.querySelector('[data-role="viewer"]');
+    const emojiEl  = card.querySelector('[data-role="emoji"]');
+    const labelEl  = card.querySelector('[data-role="slideLabel"]');
+
+    function goTo(i) {
+      if (!slides.length) return;
+      cur = (i + slides.length) % slides.length;
+      emojiEl.textContent = slides[cur].emoji;
+      viewerEl.style.background = slides[cur].bg;
+      labelEl.textContent = slides[cur].label;
+    }
+    goTo(0);
+
+    viewerEl.addEventListener('click', () => { window.location.href = detailLink; });
+    card.querySelector('[data-role="prev"]').addEventListener('click', (e) => { e.stopPropagation(); goTo(cur - 1); });
+    card.querySelector('[data-role="next"]').addEventListener('click', (e) => { e.stopPropagation(); goTo(cur + 1); });
+
+    return card;
+  }
+
+  async function loadApps() {
+    const listEl = document.getElementById('appList');
+    try {
+      const q = query(collection(db, 'apps'), where('published', '==', true), orderBy('order'));
+      const snap = await getDocs(q);
+      listEl.innerHTML = '';
+      snap.forEach(docSnap => {
+        listEl.appendChild(renderApp({ id: docSnap.id, ...docSnap.data() }));
+      });
+      const placeholder = document.createElement('div');
+      placeholder.style = 'margin-top:60px; padding:48px 24px; border:2px dashed var(--border); border-radius:var(--radius); text-align:center; color:var(--muted); font-size:14px;';
+      placeholder.textContent = 'この下は2作目以降が入るスペースです';
+      listEl.appendChild(placeholder);
+    } catch (err) {
+      console.error('アプリ一覧の読み込みに失敗しました', err);
+      listEl.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px;">読み込みに失敗しました。時間をおいて再度お試しください。</p>';
     }
   }
+
+  loadApps();
 </script>
 
 </body>

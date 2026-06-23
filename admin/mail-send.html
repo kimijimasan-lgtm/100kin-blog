@@ -84,13 +84,15 @@
     <a href="inquiries.html">問い合わせ</a>
     <a href="mail-send.html" class="active">一斉メール</a>
     <a href="../index.html">サイトを見る</a>
+    <a href="#" id="logoutLink">ログアウト</a>
   </nav>
 </header>
 
-<div class="layout">
+<div class="layout" id="layout" style="display:none;">
 
   <p class="page-title">一斉メール送信</p>
   <p class="page-sub">購入済みユーザーのメールアドレスへ一括で通知を送ります</p>
+  <p style="font-size:11px; color:var(--muted); margin:-12px 0 20px;">※ 送信先件数はStripe購入記録の集計が未実装のため、現状ダミー値のままです（Firestore未接続）</p>
 
   <div class="form-card">
     <form id="mailForm">
@@ -125,7 +127,26 @@
   © 2026 100均アプリ — siro（管理画面）
 </footer>
 
-<script>
+<script type="module">
+  import { auth } from "../firebase-config.js";
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+  const ADMIN_EMAIL = "kimijimasan@gmail.com";
+
+  document.getElementById('logoutLink').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await signOut(auth);
+    location.href = 'login.html';
+  });
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user || user.email !== ADMIN_EMAIL) {
+      location.href = 'login.html';
+      return;
+    }
+    document.getElementById('layout').style.display = '';
+  });
+
   const audienceSel = document.getElementById('audience');
   const recipientCount = document.getElementById('recipientCount');
   const counts = { purchasers: 42, all: 360 };
