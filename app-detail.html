@@ -52,8 +52,35 @@
     gap: 24px;
     align-items: start;
   }
+  /* 横向き時の3カラム比率(1:2:1)を縦向きでも維持し、画面幅に応じて縮小表示する。
+     1カラムへの崩しは行わず、ガター・パディングのみ詰めて窮屈さを抑える。 */
   @media (max-width: 700px) {
-    .layout { grid-template-columns: 1fr; }
+    .layout { padding: 10px 12px 40px; gap: 10px; }
+    .arrow { width: 22px; height: 22px; font-size: 11px; }
+    .app-name { font-size: 13px; margin-bottom: 2px; }
+    .app-catch { font-size: 10px; margin-bottom: 6px; }
+    .stars-row { gap: 4px; margin-bottom: 8px; }
+    .stars { font-size: 11px; }
+    .review-link { font-size: 9px; }
+    .features-title { font-size: 10px; margin-bottom: 5px; }
+    .features-list { margin-bottom: 10px; }
+    .features-list li { font-size: 10px; padding: 3px 0; }
+    .spec-table { font-size: 9px; margin-bottom: 10px; }
+    .spec-table td { padding: 4px 2px; }
+    .purchase-box { padding: 10px; position: static; }
+    .price { font-size: 14px; margin-bottom: 4px; }
+    .price span { font-size: 9px; }
+    .purchase-note { font-size: 9px; margin-bottom: 8px; }
+    .btn { padding: 7px; font-size: 10px; margin-bottom: 6px; }
+    .limit-note { font-size: 9px; padding: 6px 8px; margin-bottom: 8px; }
+    .contact-link { font-size: 9px; margin-top: 8px; }
+    .section-title { font-size: 10px; padding-bottom: 4px; margin-bottom: 10px; }
+    .review-card { padding: 8px; margin-bottom: 8px; }
+    .avatar { width: 22px; height: 22px; font-size: 9px; }
+    .reviewer { font-size: 9px; }
+    .review-meta { font-size: 8px; }
+    .review-stars { font-size: 9px; }
+    .review-text { font-size: 9px; margin-top: 4px; }
   }
 
   /* 左：縦長ビューワー */

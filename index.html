@@ -69,8 +69,22 @@
     gap: 24px;
     align-items: start;
   }
+  /* 横向き時の3カラム比率(1:2:1)を縦向きでも維持し、画面幅に応じて縮小表示する。
+     1カラムへの崩しは行わず、ガター・パディングのみ詰めて窮屈さを抑える。 */
   @media (max-width: 640px) {
-    .three-col { grid-template-columns: 1fr; }
+    .app-section { padding: 0 12px; }
+    .three-col { gap: 10px; }
+    .desc-col .section-label { font-size: 9px; margin-bottom: 6px; }
+    .desc-col ul li { font-size: 11px; padding: 5px 0; gap: 4px; }
+    .desc-col .price-row { gap: 6px; margin-top: 10px; }
+    .desc-col .price { font-size: 14px; }
+    .desc-col .price-note { font-size: 9px; }
+    .desc-col .btn { padding: 6px 10px; font-size: 10px; margin-top: 8px; }
+    .catch-col .catch-block { padding: 10px 8px; }
+    .catch-col .catch-word { font-size: 11px; line-height: 1.4; }
+    .catch-col .catch-word.accent { font-size: 15px; line-height: 1.3; }
+    .arrow { width: 22px; height: 22px; font-size: 11px; }
+    .viewer .emoji { font-size: 32px; }
   }
 
   /* 左：縦長サムネイル */
