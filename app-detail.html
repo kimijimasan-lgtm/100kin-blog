@@ -30,9 +30,7 @@
     height: 52px; min-height: 52px; max-height: 52px;
     overflow: hidden;
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; gap: 12px;
     display: flex; align-items: center; gap: 14px;
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   }
   header a.back { color: #b8d9b2; text-decoration: none; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1.5px solid #b8d9b2; border-radius: 6px; font-size: 16px; line-height: 1; }
   header a.back:hover { color: #fff; }
@@ -42,105 +40,62 @@
   .breadcrumb { padding: 10px 24px; font-size: 12px; color: var(--muted); }
   .breadcrumb a { color: var(--primary); text-decoration: none; }
 
-  /* 3カラムレイアウト */
+  /* 2カラムレイアウト：左＝画像＋購入ボックス、右＝説明＋レビュー */
   .layout {
     max-width: 1100px;
     margin: 0 auto;
     padding: 16px 24px 60px;
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    gap: 24px;
+    grid-template-columns: 440px 1fr;
+    gap: 40px;
     align-items: start;
   }
-  /* 横向き時の3カラム比率(1:2:1)を縦向きでも維持し、画面幅に応じて縮小表示する。
-     1カラムへの崩しは行わず、ガター・パディングのみ詰めて窮屈さを抑える。 */
-  @media (max-width: 700px) {
-    .layout { padding: 10px 12px 40px; gap: 10px; }
-    .arrow { width: 22px; height: 22px; font-size: 11px; }
-    .app-name { font-size: 13px; margin-bottom: 2px; }
-    .app-catch { font-size: 10px; margin-bottom: 6px; }
-    .stars-row { gap: 4px; margin-bottom: 8px; }
-    .stars { font-size: 11px; }
-    .review-link { font-size: 9px; }
-    .features-title { font-size: 10px; margin-bottom: 5px; }
-    .features-list { margin-bottom: 10px; }
-    .features-list li { font-size: 10px; padding: 3px 0; }
-    .spec-table { font-size: 9px; margin-bottom: 10px; }
-    .spec-table td { padding: 4px 2px; }
-    .purchase-box { padding: 10px; position: static; }
-    .price { font-size: 14px; margin-bottom: 4px; }
-    .price span { font-size: 9px; }
-    .purchase-note { font-size: 9px; margin-bottom: 8px; }
-    .btn { padding: 7px; font-size: 10px; margin-bottom: 6px; }
-    .limit-note { font-size: 9px; padding: 6px 8px; margin-bottom: 8px; }
-    .contact-link { font-size: 9px; margin-top: 8px; }
-    .section-title { font-size: 10px; padding-bottom: 4px; margin-bottom: 10px; }
-    .review-card { padding: 8px; margin-bottom: 8px; }
-    .avatar { width: 22px; height: 22px; font-size: 9px; }
-    .reviewer { font-size: 9px; }
-    .review-meta { font-size: 8px; }
-    .review-stars { font-size: 9px; }
-    .review-text { font-size: 9px; margin-top: 4px; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; gap: 28px; }
   }
 
-  /* 左：縦長ビューワー */
+  /* 左：縦長ビューワー（拡大） */
   .viewer-wrap {
     position: relative;
+    max-width: 420px;
+    margin: 0 auto;
   }
   .screenshot-main {
     width: 100%;
     aspect-ratio: 9/19.5;
     background: linear-gradient(135deg, #d4e8d0, #a8cfa0);
-    border-radius: 24px;
+    border-radius: 28px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 64px;
+    font-size: 96px;
     overflow: hidden;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.10);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.14);
   }
   .arrow {
     position: absolute; top: 50%; transform: translateY(-50%);
     background: rgba(255,255,255,0.88);
     border: 0.5px solid rgba(0,0,0,0.1);
     border-radius: 50%;
-    width: 32px; height: 32px;
+    width: 40px; height: 40px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 17px; color: var(--text);
+    cursor: pointer; font-size: 20px; color: var(--text);
     transition: background 0.15s; z-index: 10;
     user-select: none;
   }
   .arrow:hover { background: #fff; }
-  .arrow.left  { left: 6px; }
-  .arrow.right { right: 6px; }
+  .arrow.left  { left: 10px; }
+  .arrow.right { right: 10px; }
   .slide-label {
-    text-align: center; font-size: 11px; color: var(--muted); margin-top: 8px;
+    text-align: center; font-size: 12px; color: var(--muted); margin-top: 10px;
   }
 
-  /* アプリ情報 */
-  .app-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  .app-catch { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
-  .stars-row { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; }
-  .stars { color: var(--accent); font-size: 16px; }
-  .review-link { font-size: 13px; color: var(--primary); }
-
-  .features-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
-  .features-list { list-style: none; margin-bottom: 24px; }
-  .features-list li { font-size: 14px; padding: 6px 0; border-bottom: 0.5px solid var(--border); }
-  .features-list li::before { content: "✓ "; color: var(--primary); font-weight: 700; }
-
-  .spec-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 24px; }
-  .spec-table tr { border-bottom: 0.5px solid var(--border); }
-  .spec-table td { padding: 8px 4px; }
-  .spec-table td:first-child { color: var(--muted); width: 40%; }
-
-  /* 購入ボックス */
+  /* 左：購入ボックス（画像の下に配置） */
   .purchase-box {
+    max-width: 420px;
+    margin: 24px auto 0;
     background: var(--surface);
     border: 0.5px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
-    position: sticky;
-    top: 64px;
-    align-self: start;
   }
   .price { font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
   .price span { font-size: 13px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
@@ -167,6 +122,53 @@
 
   .contact-link { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
   .contact-link a { color: var(--primary); }
+
+  /* 右：アプリ情報 */
+  .app-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .app-catch { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .stars-row { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; }
+  .stars { color: var(--accent); font-size: 16px; }
+  .review-link { font-size: 13px; color: var(--primary); }
+
+  .features-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+  .features-list { list-style: none; margin-bottom: 24px; }
+  .features-list li { font-size: 14px; padding: 6px 0; border-bottom: 0.5px solid var(--border); }
+  .features-list li::before { content: "✓ "; color: var(--primary); font-weight: 700; }
+
+  /* 活用例（左3/4＝拡大表示、右1/4＝縦1列サムネイル） */
+  .usecases-section { grid-column: 1 / -1; margin-top: 16px; }
+  .usecases-layout {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .usecase-main {
+    aspect-ratio: 16/10;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, #d4e8d0, #a8cfa0);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 72px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  }
+  .usecase-thumbs {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .usecase-thumb {
+    aspect-ratio: 1/1;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border-color 0.15s, opacity 0.15s;
+    opacity: 0.75;
+  }
+  .usecase-thumb:hover { opacity: 1; }
+  .usecase-thumb.active { border-color: var(--accent); opacity: 1; }
 
   /* レビュー */
   .section-title {
@@ -202,6 +204,14 @@
     font-family: inherit;
   }
   footer .admin-link:hover { color: rgba(184,217,178,0.7); }
+
+  @media (max-width: 480px) {
+    .screenshot-main { font-size: 64px; border-radius: 22px; }
+    .arrow { width: 32px; height: 32px; font-size: 16px; }
+    .usecase-main { font-size: 40px; }
+    .usecase-thumb { font-size: 14px; }
+    .usecases-layout { gap: 8px; }
+  }
 </style>
 </head>
 <body>
@@ -222,7 +232,7 @@
 
 <template id="detailTemplate">
 
-  <!-- 左 1/4：縦長ビューワー -->
+  <!-- 左：拡大ビューワー＋購入ボックス -->
   <div>
     <div class="viewer-wrap">
       <div class="screenshot-main" data-role="viewer"></div>
@@ -230,31 +240,7 @@
       <div class="arrow right" data-role="next">&#8250;</div>
     </div>
     <p class="slide-label" data-role="slideLabel"></p>
-  </div>
 
-  <!-- 中 2/4：解説 -->
-  <div>
-    <p class="app-name" data-role="name"></p>
-    <p class="app-catch" data-role="catch"></p>
-    <div class="stars-row">
-      <span class="stars" data-role="stars"></span>
-      <a class="review-link" href="#reviews" data-role="reviewCount"></a>
-    </div>
-
-    <p class="features-title">このアプリでできること</p>
-    <ul class="features-list" data-role="features"></ul>
-
-    <table class="spec-table" data-role="specs"></table>
-
-    <!-- レビュー -->
-    <div id="reviews" style="margin-top:32px;">
-      <p class="section-title">カスタマーレビュー</p>
-      <div data-role="reviewList"></div>
-    </div>
-  </div>
-
-  <!-- 右 1/4：購入ボックス -->
-  <div>
     <div class="purchase-box">
       <p class="price" data-role="price"></p>
 
@@ -270,6 +256,34 @@
         <a href="#reviews">アプリのレビューを投稿する ↓</a>
       </div>
     </div>
+  </div>
+
+  <!-- 右：解説 -->
+  <div>
+    <p class="app-name" data-role="name"></p>
+    <p class="app-catch" data-role="catch"></p>
+    <div class="stars-row">
+      <span class="stars" data-role="stars"></span>
+      <a class="review-link" href="#reviews" data-role="reviewCount"></a>
+    </div>
+
+    <p class="features-title">このアプリでできること</p>
+    <ul class="features-list" data-role="features"></ul>
+  </div>
+
+  <!-- 活用例（全幅：左3/4＝拡大表示、右1/4＝縦1列サムネイル） -->
+  <div class="usecases-section">
+    <p class="section-title" data-role="usecaseTitle"></p>
+    <div class="usecases-layout">
+      <div class="usecase-main" data-role="usecaseMain"></div>
+      <div class="usecase-thumbs" data-role="usecaseThumbs"></div>
+    </div>
+  </div>
+
+  <!-- レビュー（全幅） -->
+  <div id="reviews" style="grid-column: 1 / -1; margin-top: 16px;">
+    <p class="section-title">カスタマーレビュー</p>
+    <div data-role="reviewList"></div>
   </div>
 
 </template>
@@ -291,8 +305,40 @@
     return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 
-  function specLabel(key) {
-    return { os: '対応OS', format: '形式', developer: '開発者', updatedAt: '更新日' }[key] || key;
+  // ダミーの活用例データ。将来的にFirestoreの appDoc.useCases に差し替え可能な構造（slidesと同じ {emoji, bg, label} 形式）。
+  const DUMMY_USE_CASES = [
+    { emoji: '📝', bg: 'linear-gradient(135deg, #d4e8d0, #a8cfa0)', label: '活用例1' },
+    { emoji: '📋', bg: 'linear-gradient(135deg, #d6e4f0, #a9c8e8)', label: '活用例2' },
+    { emoji: '🗂️', bg: 'linear-gradient(135deg, #f0e6d4, #e8cfa0)', label: '活用例3' },
+    { emoji: '📱', bg: 'linear-gradient(135deg, #e8d4ec, #c8a0d8)', label: '活用例4' },
+    { emoji: '💻', bg: 'linear-gradient(135deg, #d4ece6, #a0d8c4)', label: '活用例5' },
+    { emoji: '✅', bg: 'linear-gradient(135deg, #f0d4d4, #e8a0a0)', label: '活用例6' },
+  ];
+
+  function renderUseCases(layout, appDoc) {
+    const useCases = (appDoc.useCases && appDoc.useCases.length) ? appDoc.useCases : DUMMY_USE_CASES;
+    layout.querySelector('[data-role="usecaseTitle"]').textContent = `${appDoc.name || ''}　活用例`;
+
+    const mainEl = layout.querySelector('[data-role="usecaseMain"]');
+    const thumbsEl = layout.querySelector('[data-role="usecaseThumbs"]');
+
+    function showUseCase(i) {
+      mainEl.textContent = useCases[i].emoji;
+      mainEl.style.background = useCases[i].bg;
+      thumbsEl.querySelectorAll('.usecase-thumb').forEach((el, idx) => el.classList.toggle('active', idx === i));
+    }
+
+    useCases.forEach((u, i) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'usecase-thumb';
+      thumb.textContent = u.emoji;
+      thumb.style.background = u.bg;
+      thumb.title = u.label || '';
+      thumb.addEventListener('click', () => showUseCase(i));
+      thumbsEl.appendChild(thumb);
+    });
+
+    showUseCase(0);
   }
 
   async function loadApp() {
@@ -327,18 +373,6 @@
         featuresEl.appendChild(li);
       });
 
-      const specsEl = layout.querySelector('[data-role="specs"]');
-      Object.entries(appDoc.specs || {}).forEach(([key, value]) => {
-        const tr = document.createElement('tr');
-        const tdLabel = document.createElement('td');
-        tdLabel.textContent = specLabel(key);
-        const tdValue = document.createElement('td');
-        tdValue.textContent = value;
-        tr.appendChild(tdLabel);
-        tr.appendChild(tdValue);
-        specsEl.appendChild(tr);
-      });
-
       const reviewListEl = layout.querySelector('[data-role="reviewList"]');
       reviews.forEach(r => {
         const card = document.createElement('div');
@@ -360,6 +394,8 @@
         card.querySelector('.review-text').textContent = r.text || '';
         reviewListEl.appendChild(card);
       });
+
+      renderUseCases(layout, appDoc);
 
       layout.querySelector('[data-role="price"]').innerHTML = `¥${appDoc.price ?? ''}<br><span>（買い切り）</span>`;
       layout.querySelector('[data-role="stripeLink"]').href = appDoc.stripeLink || '#';
