@@ -2,7 +2,7 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-06-23（管理者ページFirestore接続）
+最終更新: 2026-06-26（index.html・app-detail.html UI大幅改修）
 
 ---
 
@@ -36,6 +36,33 @@
 ---
 
 ## 3. これまでの作業状況
+
+### UI改修（2026-06-26）
+
+**index.html**
+- トップバー直下の煽り文（`.sub-tagline`）を `font-weight: 700`（太文字）に変更
+
+**app-detail.html**（大幅改修）
+- **ヘッダー**: ホームアイコンボタン（`<a class="back">`）を削除。「100均アプリ」タイトル（`<h1>`）を `<a class="logo-link" href="index.html">` に変更し、クリックでホームへ戻るリンクに
+- **ヘッダー**: キャッチコピー（黄色テキスト）を削除。タイトルのみのシンプルなヘッダーに
+- **「このアプリでできること」セクション**: テンプレートHTML・CSS・JS（features populate処理）を完全削除
+- **活用例サムネイルグリッドセクション**: `usecases-section`・`DUMMY_USE_CASES`・`renderUseCases()`関数を完全削除
+- **レイアウト再設計（2ページ構成）**:
+  - Page 1（`height: calc(100dvh - 52px)`）: スクリーンショットビューワー（flex: 2）＋解説文エリア（flex: 1）が1画面に収まる構成。スクロールヒントアニメーション付き
+  - 区切り: ダークグリーン（`--primary`色）のフルワイド帯「詳 細 ・ 購 入」
+  - Page 2: アプリ名・星評価 → 購入ボックス（¥・購入/ゲストボタン）→ カスタマーレビュー
+  - グリッドレイアウト（`440px 1fr`）は廃止し、`viewer-section` / `detail-section` の縦並び構成に変更
+- **スクリーンショットビューワー最終形**:
+  - `viewer-section { background: #16280f }` — ダークグリーン背景（スクショ＋解説エリアのコントラスト）
+  - `viewer-area { max-width: 360px }` — 矢印の外出し配置のため幅拡張
+  - `.viewer-wrap { display: flex; justify-content: center; position: relative }` — スクショを中央配置、矢印の基準要素
+  - `.screenshot-main { height: 100%; width: auto; aspect-ratio: 9/19.5 }` — 親の高さを充填してアスペクト比から幅を自動計算
+  - **矢印を外側配置**: `position: absolute; left: 0 / right: 0` で viewer-wrap の左右端に固定。スクショは viewer-wrap 内で中央配置されるため、スクショ幅より外側に自然に配置（viewer-area 360px に対しスクショ幅は ~220px程度）。サイズ 48×48px、フォント 24px
+  - **解説文エリア** (`[data-role="slideLabel"]`): スクショ下に独立配置（オーバーレイ廃止）。flex: 1 でスクショの半分の高さ。背景白（`var(--surface)`）。フォントサイズ 17px
+  - **フリック対応**: `.screenshot-main` にポインターイベントでスワイプ検知 → `goTo()` 呼び出し
+  - **解説文ダミーテキスト**: `DUMMY_SLIDE_DESCRIPTIONS` 配列（6項目）を定義。Firestoreの `slides[i].description` が追加されれば自動で優先表示（`??` フォールバック構造）
+
+
 
 - **Phase 1（HTML/CSS）**: ほぼ完了
   - `index.html`: 3カラムレイアウトのホーム画面、アプリサムネイル切替スライダー
