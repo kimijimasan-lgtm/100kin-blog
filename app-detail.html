@@ -38,36 +38,42 @@
     white-space: nowrap; flex-shrink: 0; text-decoration: none;
   }
   header a.logo-link:hover { opacity: 0.85; }
-  header .catch { color: #ffe033; font-size: 12px; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
 
-  .breadcrumb { padding: 10px 24px; font-size: 12px; color: var(--muted); }
-  .breadcrumb a { color: var(--primary); text-decoration: none; }
-
-  /* 2カラムレイアウト：左＝画像＋購入ボックス、右＝説明＋レビュー */
-  .layout {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 16px 24px 60px;
-    display: grid;
-    grid-template-columns: 440px 1fr;
-    gap: 40px;
-    align-items: start;
-  }
-  @media (max-width: 860px) {
-    .layout { grid-template-columns: 1fr; gap: 28px; }
+  /* ─── Page 1：スクリーンショット＋解説文（1画面） ─── */
+  .viewer-section {
+    height: calc(100dvh - var(--header-h));
+    background: #16280f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px 0;
+    overflow: hidden;
   }
 
-  /* 左：縦長ビューワー（現在サイズの2/3）＋解説文 */
+  /* スクショ＋解説のフレックスコンテナ */
   .viewer-area {
-    max-width: 280px;
-    margin: 0 auto;
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 360px;
+    gap: 12px;
   }
+
+  /* スクショ側（2/3）*/
   .viewer-wrap {
+    flex: 2 1 0;
+    min-height: 0;
+    display: flex;
+    justify-content: center;
     position: relative;
   }
   .screenshot-main {
-    width: 100%;
+    height: 100%;
     aspect-ratio: 9/19.5;
+    width: auto;
+    max-width: 100%;
     border-radius: 28px;
     overflow: hidden;
     box-shadow: 0 4px 24px rgba(0,0,0,0.14);
@@ -79,46 +85,88 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 64px;
   }
-  /* 解説文エリア（スクリーンショット高さの半分に相当: aspect-ratio 9/19.5 の 1/2 = 18/19.5 = 12/13） */
-  .slide-description {
-    aspect-ratio: 12/13;
-    margin-top: 12px;
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    font-size: 13px;
-    line-height: 1.8;
-    color: var(--text);
-    overflow-y: auto;
-  }
+  /* 矢印：viewer-wrap の左右端（スクショ枠の外側）に絶対配置 */
   .arrow {
     position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,0.88);
-    border: 0.5px solid rgba(0,0,0,0.1);
+    background: rgba(255,255,255,0.92);
+    border: 0.5px solid rgba(0,0,0,0.12);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     border-radius: 50%;
-    width: 34px; height: 34px;
+    width: 48px; height: 48px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 18px; color: var(--text);
+    cursor: pointer; font-size: 24px; color: var(--text);
     transition: background 0.15s; z-index: 10;
     user-select: none;
   }
   .arrow:hover { background: #fff; }
-  .arrow.left  { left: 8px; }
-  .arrow.right { right: 8px; }
+  .arrow.left  { left: 0; }
+  .arrow.right { right: 0; }
 
-  /* 左：購入ボックス（画像の下に配置） */
+  /* 解説文側（1/3）*/
+  .slide-description {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 17px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+
+  /* スクロールヒント */
+  .page-scroll-hint {
+    flex-shrink: 0;
+    padding: 10px 0 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: var(--muted);
+    font-size: 11px;
+    animation: hint-bounce 2s ease-in-out infinite;
+  }
+  .page-scroll-hint svg { width: 16px; height: 16px; }
+  @keyframes hint-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+
+  /* ─── ページ区切り ─── */
+  .page-divider {
+    background: var(--primary);
+    color: #fff;
+    text-align: center;
+    padding: 10px 24px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+  }
+
+  /* ─── Page 2：購入＋レビュー ─── */
+  .detail-section {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+
+  .app-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .app-catch { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .stars-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+  .stars { color: var(--accent); font-size: 16px; }
+  .review-link { font-size: 13px; color: var(--primary); }
+
   .purchase-box {
-    max-width: 420px;
-    margin: 24px auto 0;
     background: var(--surface);
     border: 0.5px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
+    margin-bottom: 32px;
   }
-  .price { font-size: 28px; font-weight: 700; margin-bottom: 8px; line-height: 1.3; }
+  .price { font-size: 28px; font-weight: 700; margin-bottom: 16px; line-height: 1.3; }
   .price span { font-size: 13px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
-  .purchase-note { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
 
   .btn {
     display: block; width: 100%; padding: 13px;
@@ -131,23 +179,8 @@
   .btn-secondary { background: var(--bg); color: var(--text); border: 0.5px solid var(--border); font-size: 14px; }
   .btn-secondary:hover { background: var(--border); }
 
-  .limit-note {
-    background: #fdf6e8; border: 0.5px solid #e8c878;
-    border-radius: 8px; padding: 10px 12px;
-    font-size: 12px; color: #7a5c10; margin-bottom: 12px;
-  }
-  .limit-note ul { padding-left: 14px; margin-top: 4px; }
-  .limit-note li { margin-top: 3px; }
-
   .contact-link { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
   .contact-link a { color: var(--primary); }
-
-  /* 右：アプリ情報 */
-  .app-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  .app-catch { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
-  .stars-row { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; }
-  .stars { color: var(--accent); font-size: 16px; }
-  .review-link { font-size: 13px; color: var(--primary); }
 
   /* レビュー */
   .section-title {
@@ -187,7 +220,7 @@
   @media (max-width: 480px) {
     .viewer-content { font-size: 48px; }
     .screenshot-main { border-radius: 22px; }
-    .arrow { width: 28px; height: 28px; font-size: 14px; }
+    .arrow { width: 40px; height: 40px; font-size: 20px; }
   }
 </style>
 </head>
@@ -195,64 +228,62 @@
 
 <header>
   <a class="logo-link" href="index.html">100均アプリ</a>
-  <span class="catch">自分（開発者）が逆の立場でも「100円なら払ってもいいな！？」と思えるものをつくりました。</span>
 </header>
 
-<div class="breadcrumb">
-  <a href="index.html">ホーム</a> › PCスマホ連動メモ
-</div>
-
-<div class="layout" id="layout">
-  <p style="text-align:center; color:var(--muted); font-size:13px; grid-column: 1 / -1;">読み込み中...</p>
+<div id="layout">
+  <p style="text-align:center; color:var(--muted); font-size:13px; padding:80px 20px;">読み込み中...</p>
 </div>
 
 <template id="detailTemplate">
 
-  <!-- 左：拡大ビューワー＋購入ボックス -->
-  <div>
+  <!-- ─── Page 1：スクリーンショット＋解説文（1画面） ─── -->
+  <section class="viewer-section">
     <div class="viewer-area">
       <div class="viewer-wrap">
+        <div class="arrow left" data-role="prev">&#8249;</div>
         <div class="screenshot-main">
           <div class="viewer-content" data-role="viewer"></div>
         </div>
-        <div class="arrow left"  data-role="prev">&#8249;</div>
         <div class="arrow right" data-role="next">&#8250;</div>
       </div>
       <div class="slide-description" data-role="slideLabel"></div>
     </div>
-
-    <div class="purchase-box">
-      <p class="price" data-role="price"></p>
-
-      <a class="btn btn-primary" data-role="stripeLink" target="_blank">
-        購入してログイン
-      </a>
-
-      <a class="btn btn-secondary" data-role="guestLink">
-        ゲストで試してみる
-      </a>
-
-      <div class="contact-link">
-        <a href="#reviews">アプリのレビューを投稿する ↓</a>
-      </div>
+    <div class="page-scroll-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      <span>詳細・購入へ</span>
     </div>
-  </div>
+  </section>
 
-  <!-- 右：解説 -->
-  <div>
+  <!-- ─── ページ区切り ─── -->
+  <div class="page-divider">詳 細 ・ 購 入</div>
+
+  <!-- ─── Page 2：購入＋レビュー ─── -->
+  <section class="detail-section">
     <p class="app-name" data-role="name"></p>
     <p class="app-catch" data-role="catch"></p>
     <div class="stars-row">
       <span class="stars" data-role="stars"></span>
       <a class="review-link" href="#reviews" data-role="reviewCount"></a>
     </div>
-  </div>
 
-  <!-- レビュー（全幅） -->
-  <div id="reviews" style="grid-column: 1 / -1; margin-top: 16px;">
-    <p class="section-title">カスタマーレビュー</p>
-    <div data-role="reviewList"></div>
-  </div>
+    <div class="purchase-box">
+      <p class="price" data-role="price"></p>
+      <a class="btn btn-primary" data-role="stripeLink" target="_blank">
+        購入してログイン
+      </a>
+      <a class="btn btn-secondary" data-role="guestLink">
+        ゲストで試してみる
+      </a>
+      <div class="contact-link">
+        <a href="#reviews">アプリのレビューを投稿する ↓</a>
+      </div>
+    </div>
+
+    <div id="reviews">
+      <p class="section-title">カスタマーレビュー</p>
+      <div data-role="reviewList"></div>
+    </div>
+  </section>
 
 </template>
 
@@ -308,6 +339,9 @@
       layout.querySelector('[data-role="catch"]').textContent = (appDoc.catchWords || []).join('');
       layout.querySelector('[data-role="stars"]').textContent = starString(appDoc.stars);
       layout.querySelector('[data-role="reviewCount"]').textContent = `${reviews.length}件のレビュー`;
+      layout.querySelector('[data-role="price"]').innerHTML = `¥${appDoc.price ?? ''}<br><span>（買い切り）</span>`;
+      layout.querySelector('[data-role="stripeLink"]').href = appDoc.stripeLink || '#';
+      layout.querySelector('[data-role="guestLink"]').href = appDoc.guestLink || '#';
 
       const reviewListEl = layout.querySelector('[data-role="reviewList"]');
       reviews.forEach(r => {
@@ -331,14 +365,10 @@
         reviewListEl.appendChild(card);
       });
 
-      layout.querySelector('[data-role="price"]').innerHTML = `¥${appDoc.price ?? ''}<br><span>（買い切り）</span>`;
-      layout.querySelector('[data-role="stripeLink"]').href = appDoc.stripeLink || '#';
-      layout.querySelector('[data-role="guestLink"]').href = appDoc.guestLink || '#';
-
       const slides = appDoc.slides || [];
       let cur = 0;
       const viewerEl = layout.querySelector('[data-role="viewer"]');
-      const labelEl  = layout.querySelector('[data-role="slideLabel"]');
+      const descEl   = layout.querySelector('[data-role="slideLabel"]');
 
       function goTo(i) {
         if (!slides.length) return;
@@ -346,7 +376,7 @@
         viewerEl.textContent = slides[cur].emoji;
         viewerEl.style.background = slides[cur].bg;
         // slides[i].description が Firestore に追加されれば自動でそちらを表示
-        labelEl.textContent = slides[cur].description ?? DUMMY_SLIDE_DESCRIPTIONS[cur % DUMMY_SLIDE_DESCRIPTIONS.length] ?? '';
+        descEl.textContent = slides[cur].description ?? DUMMY_SLIDE_DESCRIPTIONS[cur % DUMMY_SLIDE_DESCRIPTIONS.length] ?? '';
       }
       goTo(0);
       layout.querySelector('[data-role="prev"]').addEventListener('click', () => goTo(cur - 1));
@@ -375,7 +405,7 @@
 
     } catch (err) {
       console.error('アプリ詳細の読み込みに失敗しました', err);
-      layout.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px; grid-column: 1 / -1;">読み込みに失敗しました。時間をおいて再度お試しください。</p>';
+      layout.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px; padding:80px 20px;">読み込みに失敗しました。時間をおいて再度お試しください。</p>';
     }
   }
 
