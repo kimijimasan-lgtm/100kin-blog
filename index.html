@@ -117,11 +117,12 @@
     min-width: 0;
     aspect-ratio: 9/17;
     border-radius: 26px;
-    background: linear-gradient(160deg, #d4e8d0, #8ec488);
+    background: linear-gradient(160deg, #1a1d24, #2d3748);
     display: flex; align-items: center; justify-content: center;
     font-size: clamp(36px, 9vw, 64px);
     box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 0 6px rgba(255,255,255,0.08);
     user-select: none;
+    object-fit: cover;
   }
   .hero-carousel .arrow {
     position: absolute; top: 50%; transform: translateY(-50%);
@@ -359,11 +360,16 @@
     return out;
   }
 
+  // トップページ用静的スクリーンショット（4枚）
+  const TOP_PAGE_IMAGES = [
+    'images/IMG_9266.PNG',
+    'images/IMG_9267.PNG',
+    'images/IMG_9268.PNG',
+    'images/IMG_9270.PNG'
+  ];
+
   function renderHero(appDoc) {
     const detailLink = `app-detail.html?app=${encodeURIComponent(appDoc.id)}`;
-    const fallbackSlide = { emoji: appDoc.icon || '📦', bg: 'linear-gradient(160deg, #d4e8d0, #8ec488)' };
-    const slides = (appDoc.slides && appDoc.slides.length) ? appDoc.slides : [fallbackSlide];
-    const pages = chunkSlides(slides, 2);
     const catchText = (appDoc.catchWords || []).join('');
     const features = appDoc.features || [];
 
@@ -377,11 +383,14 @@
         <div class="hero-carousel">
           <div class="hero-carousel-viewport">
             <div class="hero-carousel-track">
-              ${pages.map(page => `
-                <div class="hero-carousel-page">
-                  ${page.map(s => `<div class="hero-screenshot" style="background:${s.bg}">${escapeHtml(s.emoji)}</div>`).join('')}
-                </div>
-              `).join('')}
+              <div class="hero-carousel-page">
+                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[0]}" alt="スクリーンショット1">
+                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[1]}" alt="スクリーンショット2">
+              </div>
+              <div class="hero-carousel-page">
+                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[2]}" alt="スクリーンショット3">
+                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[3]}" alt="スクリーンショット4">
+              </div>
             </div>
           </div>
           <div class="arrow left" data-role="heroPrev">&#8249;</div>
@@ -423,7 +432,7 @@
     }, { threshold: 0.3 });
     items.forEach(item => observer.observe(item));
 
-    initHeroCarousel(root, pages.length);
+    initHeroCarousel(root, 2); // 静的画像4枚を2ページで表示
   }
 
   function renderMoreApps(apps) {
