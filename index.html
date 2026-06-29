@@ -54,47 +54,56 @@
     min-height: calc(100dvh - 52px);
     background: radial-gradient(circle at 50% 0%, #3d7536, var(--primary) 55%, var(--primary-dark));
     color: #fff;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     text-align: center;
-    padding: 36px 20px 56px;
+    padding: 20px 20px 56px;
     position: relative;
     overflow: hidden;
+  }
+  /* 白い解説テキスト部分 */
+  .hero-text-block {
+    background: rgba(255,255,255,0.95);
+    color: var(--text);
+    border-radius: 16px;
+    padding: 16px 20px 12px;
+    width: clamp(280px, 90vw, 400px);
+    position: relative;
+    z-index: 1;
   }
   .hero-title {
     font-weight: 900;
     line-height: 1.25;
-    max-width: 760px;
-    margin-bottom: clamp(16px, 3.5vw, 24px);
+    margin-bottom: 8px;
   }
   .hero-title .line1 {
     display: block;
-    width: 100%;
     text-align: left;
-    padding-left: clamp(8px, 4vw, 24px);
-    font-size: clamp(26px, 8vw, 44px);
-    color: var(--accent);
-    margin-bottom: 10px;
+    font-size: clamp(18px, 5vw, 28px);
+    color: var(--primary);
+    margin-bottom: 4px;
   }
   .hero-title .line2 {
     display: block;
-    font-size: clamp(32px, 9vw, 60px);
+    font-size: clamp(22px, 6vw, 36px);
+    color: var(--text);
   }
   .hero-catchbox {
     display: inline-block;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.35);
-    border-radius: 12px;
-    padding: 10px 20px;
-    font-size: clamp(14px, 3.6vw, 18px);
-    font-weight: 800;
+    background: var(--primary);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: clamp(12px, 3vw, 15px);
+    font-weight: 700;
     color: #fff;
-    margin-bottom: clamp(20px, 4vw, 32px);
+    margin-bottom: 0;
   }
   /* スクリーンショット：2枚同時表示・2枚ずつページ送りのスワイプ／ドラッグ対応カルーセル */
   .hero-carousel {
     position: relative;
-    width: clamp(240px, 84vw, 420px);
-    margin: 0 auto clamp(20px, 4vw, 36px);
+    width: clamp(280px, 90vw, 400px);
+    margin: -30px auto clamp(20px, 4vw, 36px);
+    z-index: 2;
   }
   .hero-carousel-viewport {
     overflow: hidden;
@@ -110,7 +119,7 @@
     flex: 0 0 100%;
     width: 100%;
     display: flex;
-    gap: clamp(10px, 2.5vw, 18px);
+    gap: clamp(8px, 2vw, 14px);
   }
   .hero-screenshot {
     flex: 1 1 0;
@@ -120,24 +129,24 @@
     background: linear-gradient(160deg, #1a1d24, #2d3748);
     display: flex; align-items: center; justify-content: center;
     font-size: clamp(36px, 9vw, 64px);
-    box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 0 6px rgba(255,255,255,0.08);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 0 4px rgba(255,255,255,0.15);
     user-select: none;
     object-fit: cover;
   }
   .hero-carousel .arrow {
     position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,0.85);
-    border: 0.5px solid rgba(0,0,0,0.1);
+    background: rgba(0,0,0,0.5);
+    border: none;
     border-radius: 50%;
-    width: 30px; height: 30px;
+    width: 36px; height: 36px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 15px; color: var(--text);
+    cursor: pointer; font-size: 18px; color: #fff;
     transition: background 0.15s; z-index: 10;
     user-select: none;
   }
-  .hero-carousel .arrow:hover { background: #fff; }
-  .hero-carousel .arrow.left  { left: -14px; }
-  .hero-carousel .arrow.right { right: -14px; }
+  .hero-carousel .arrow:hover { background: rgba(0,0,0,0.7); }
+  .hero-carousel .arrow.left  { left: 10px; }
+  .hero-carousel .arrow.right { right: 10px; }
   .hero-ctas {
     display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
     width: 100%; max-width: 420px;
@@ -263,9 +272,9 @@
 
   /* ── PC（広い画面）：ファーストビューを左右2分割でよりインパクトのある配置に ── */
   @media (min-width: 860px) {
-    .hero { flex-direction: row; justify-content: center; gap: 64px; text-align: left; padding: 0 40px; }
-    .hero-carousel { order: 2; margin-bottom: 0; width: clamp(320px, 30vw, 420px); }
-    .hero-text-block { order: 1; display: flex; flex-direction: column; align-items: flex-start; flex: 1 1 420px; max-width: 480px; }
+    .hero { flex-direction: row; justify-content: center; align-items: center; gap: 64px; text-align: left; padding: 40px 40px; }
+    .hero-text-block { order: 1; background: rgba(255,255,255,0.95); padding: 24px 28px 20px; width: auto; max-width: 420px; }
+    .hero-carousel { order: 2; margin: 0; width: clamp(320px, 30vw, 420px); }
     .hero-title .line2 { font-size: clamp(28px, 4.4vw, 46px); white-space: nowrap; }
     .hero-catchbox { align-self: flex-start; }
     .hero-ctas { justify-content: flex-start; max-width: 460px; }
