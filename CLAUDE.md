@@ -2,7 +2,7 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-06-26（index.html・app-detail.html UI大幅改修）
+最終更新: 2026-06-29（index.html・app-detail.html レイアウト調整）
 
 ---
 
@@ -37,30 +37,25 @@
 
 ## 3. これまでの作業状況
 
-### UI改修（2026-06-26）
+### UI改修（2026-06-26〜2026-06-29）
 
-**index.html**
+**app-detail.html**（詳細ページ）— 完了
+- 左矢印（前へ）ボタンを非表示に変更
+- 解説ボックスのデザイン変更:
+  - 背景色: 青（`#1e40af`）
+  - 枠線: 白・太め（`3px solid #ffffff`）
+  - 文字色: 純黄色（`#FFFF00`）
+  - フォント: 太文字（`font-weight: 900`）
+  - ドロップシャドウ強化
+- スマホ画像横幅拡大（`width: 92%`、`max-width: 400px`）
+- 解説ボックスをスマホ画像内下部に`position: absolute`で配置
+
+**index.html**（トップページ）— 調整中
 - トップバー直下の煽り文（`.sub-tagline`）を `font-weight: 700`（太文字）に変更
-
-**app-detail.html**（大幅改修）
-- **ヘッダー**: ホームアイコンボタン（`<a class="back">`）を削除。「100均アプリ」タイトル（`<h1>`）を `<a class="logo-link" href="index.html">` に変更し、クリックでホームへ戻るリンクに
-- **ヘッダー**: キャッチコピー（黄色テキスト）を削除。タイトルのみのシンプルなヘッダーに
-- **「このアプリでできること」セクション**: テンプレートHTML・CSS・JS（features populate処理）を完全削除
-- **活用例サムネイルグリッドセクション**: `usecases-section`・`DUMMY_USE_CASES`・`renderUseCases()`関数を完全削除
-- **レイアウト再設計（2ページ構成）**:
-  - Page 1（`height: calc(100dvh - 52px)`）: スクリーンショットビューワー（flex: 2）＋解説文エリア（flex: 1）が1画面に収まる構成。スクロールヒントアニメーション付き
-  - 区切り: ダークグリーン（`--primary`色）のフルワイド帯「詳 細 ・ 購 入」
-  - Page 2: アプリ名・星評価 → 購入ボックス（¥・購入/ゲストボタン）→ カスタマーレビュー
-  - グリッドレイアウト（`440px 1fr`）は廃止し、`viewer-section` / `detail-section` の縦並び構成に変更
-- **スクリーンショットビューワー最終形**:
-  - `viewer-section { background: #16280f }` — ダークグリーン背景（スクショ＋解説エリアのコントラスト）
-  - `viewer-area { max-width: 360px }` — 矢印の外出し配置のため幅拡張
-  - `.viewer-wrap { display: flex; justify-content: center; position: relative }` — スクショを中央配置、矢印の基準要素
-  - `.screenshot-main { height: 100%; width: auto; aspect-ratio: 9/19.5 }` — 親の高さを充填してアスペクト比から幅を自動計算
-  - **矢印を外側配置**: `position: absolute; left: 0 / right: 0` で viewer-wrap の左右端に固定。スクショは viewer-wrap 内で中央配置されるため、スクショ幅より外側に自然に配置（viewer-area 360px に対しスクショ幅は ~220px程度）。サイズ 48×48px、フォント 24px
-  - **解説文エリア** (`[data-role="slideLabel"]`): スクショ下に独立配置（オーバーレイ廃止）。flex: 1 でスクショの半分の高さ。背景白（`var(--surface)`）。フォントサイズ 17px
-  - **フリック対応**: `.screenshot-main` にポインターイベントでスワイプ検知 → `goTo()` 呼び出し
-  - **解説文ダミーテキスト**: `DUMMY_SLIDE_DESCRIPTIONS` 配列（6項目）を定義。Firestoreの `slides[i].description` が追加されれば自動で優先表示（`??` フォールバック構造）
+- 緑テキストエリアの上下padding縮小（`36px 20px 56px` → `18px 20px 28px`）
+- タイトル・キャッチボックスのmargin縮小
+- 2ページ目の表題を「開発の動機」に変更、黄色マーカー風デコレーション追加
+- 2ページ目のボタン文言を「もっと詳しく見ましょう →」に変更
 
 
 
@@ -136,10 +131,13 @@
    - `admin/dashboard.html` / `inquiries.html` / `mail-send.html` に `onAuthStateChanged` ガード＋ログアウトリンクを追加
    - `firestore.rules` を全面更新: `apps`/`reviews`/`inquiries` の管理者向け読み書きは `isAdmin()` 必須に。公開サイト向けの `published==true`／`hidden==false` 条件は維持（ORで両立）
    - 残課題: Googleログイン等の追加プロバイダーは未設定。管理者が複数人になる場合はメール1件のハードコードをFirestore側の `admins` コレクション等に変更する必要あり
-4. **ゲスト制限の実装**（パネル3枚・カード10枚）— 現状はlogin.html上の説明文のみで、実際の制限ロジックは未実装
-5. **Stripe本番リンクの発行**（現在はtestモードリンク）
-6. **一斉メール送信の実送信機能**（Firebase Functions + Resend/SendGridの実装）
-7. **大量アクセス対策**（設計書6章）— Cloudflare導入、ウェイティングリスト等は紹介前に着手
+4. **index.htmlのUI調整**（進行中）
+   - 緑テキストエリアのpadding/margin追加調整（スマホ画像・ボタンとのバランス確認）
+   - 2ページ目「開発の動機」デコレーション微調整
+5. **ゲスト制限の実装**（パネル3枚・カード10枚）— 現状はlogin.html上の説明文のみで、実際の制限ロジックは未実装
+6. **Stripe本番リンクの発行**（現在はtestモードリンク）
+7. **一斉メール送信の実送信機能**（Firebase Functions + Resend/SendGridの実装）
+8. **大量アクセス対策**（設計書6章）— Cloudflare導入、ウェイティングリスト等は紹介前に着手
 
 ---
 

@@ -56,32 +56,31 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    width: 100%;
-    max-width: 360px;
-    gap: 12px;
+    width: 92%;
+    max-width: 400px;
   }
 
-  /* スクショ側（2/3）*/
+  /* スクショコンテナ：position:relativeで解説ボックスの基準 */
   .viewer-wrap {
-    flex: 2 1 0;
+    flex: 1 1 0;
     min-height: 0;
     display: flex;
     justify-content: center;
     position: relative;
+    overflow: hidden;
   }
   .screenshot-main {
-    height: 100%;
+    width: 100%;
+    height: auto;
+    max-height: 100%;
     aspect-ratio: 9/19.5;
-    width: auto;
-    max-width: 100%;
-    border-radius: 28px;
+    border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 4px 24px rgba(0,0,0,0.14);
-    position: relative;
   }
   .viewer-content {
-    position: absolute;
-    inset: 0;
+    width: 100%;
+    height: 100%;
     display: flex; align-items: center; justify-content: center;
     font-size: 64px;
     background: #000;
@@ -91,35 +90,41 @@
     height: 100%;
     object-fit: cover;
   }
-  /* 矢印：viewer-wrap の左右端（スクショ枠の外側）に絶対配置 */
+  /* 矢印：viewer-wrap内に配置 */
   .arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,0.92);
-    border: 0.5px solid rgba(0,0,0,0.12);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    position: absolute; top: 32%; transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
+    border: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     border-radius: 50%;
-    width: 48px; height: 48px;
+    width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 24px; color: var(--text);
+    cursor: pointer; font-size: 22px; color: #fff;
     transition: background 0.15s; z-index: 10;
     user-select: none;
   }
-  .arrow:hover { background: #fff; }
-  .arrow.left  { left: 0; }
-  .arrow.right { right: 0; }
+  .arrow:hover { background: rgba(0,0,0,0.7); }
+  .arrow.left  { display: none; }
+  .arrow.right { right: 10px; }
 
-  /* 解説文側（1/3）*/
+  /* 解説文側：viewer-wrap内の下部に重ねて配置 */
   .slide-description {
-    flex: 1 1 0;
-    min-height: 0;
+    position: absolute;
+    bottom: 16px;
+    left: 14px;
+    right: 14px;
+    max-height: 30%;
     overflow-y: auto;
-    background: var(--surface);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius);
+    background: #1e40af;
+    border: 3px solid #ffffff;
+    border-radius: 14px;
     padding: 14px 16px;
-    font-size: 17px;
-    line-height: 1.75;
-    color: var(--text);
+    font-size: 15px;
+    font-weight: 900;
+    line-height: 1.65;
+    color: #FFFF00;
+    z-index: 5;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
   }
 
   /* スクロールヒント */
@@ -246,13 +251,13 @@
   <section class="viewer-section">
     <div class="viewer-area">
       <div class="viewer-wrap">
-        <div class="arrow left" data-role="prev">&#8249;</div>
         <div class="screenshot-main">
           <div class="viewer-content" data-role="viewer"></div>
         </div>
+        <div class="arrow left" data-role="prev">&#8249;</div>
         <div class="arrow right" data-role="next">&#8250;</div>
+        <div class="slide-description" data-role="slideLabel"></div>
       </div>
-      <div class="slide-description" data-role="slideLabel"></div>
     </div>
     <div class="page-scroll-hint">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
