@@ -60,54 +60,17 @@
     position: relative;
     overflow: hidden;
   }
-  /* 白い解説テキスト部分 */
-  .hero-text-block {
-    background: rgba(255,255,255,0.95);
-    color: var(--text);
-    border-radius: 16px;
-    padding: 16px 20px 12px;
-    width: clamp(280px, 90vw, 400px);
-    position: relative;
-    z-index: 1;
-  }
-  .hero-title {
-    font-weight: 900;
-    line-height: 1.25;
-    margin-bottom: 8px;
-  }
-  .hero-title .line1 {
-    display: block;
-    text-align: left;
-    font-size: clamp(18px, 5vw, 28px);
-    color: var(--primary);
-    margin-bottom: 4px;
-  }
-  .hero-title .line2 {
-    display: block;
-    font-size: clamp(22px, 6vw, 36px);
-    color: var(--text);
-  }
-  .hero-catchbox {
-    display: inline-block;
-    background: var(--primary);
-    border: none;
-    border-radius: 8px;
-    padding: 6px 14px;
-    font-size: clamp(12px, 3vw, 15px);
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 0;
-  }
-  /* スクリーンショット：2枚同時表示・2枚ずつページ送りのスワイプ／ドラッグ対応カルーセル */
+  /* スクリーンショット：2枚同時表示・先に配置 */
   .hero-carousel {
     position: relative;
-    width: clamp(280px, 90vw, 400px);
-    margin: -30px auto clamp(20px, 4vw, 36px);
-    z-index: 2;
+    width: clamp(280px, 92vw, 380px);
+    margin: 0 auto;
+    z-index: 1;
+    order: 1;
   }
   .hero-carousel-viewport {
     overflow: hidden;
-    border-radius: 26px;
+    border-radius: 20px;
   }
   .hero-carousel-track {
     display: flex;
@@ -119,37 +82,79 @@
     flex: 0 0 100%;
     width: 100%;
     display: flex;
-    gap: clamp(8px, 2vw, 14px);
+    gap: clamp(6px, 1.5vw, 10px);
   }
   .hero-screenshot {
     flex: 1 1 0;
     min-width: 0;
     aspect-ratio: 9/17;
-    border-radius: 26px;
+    border-radius: 20px;
     background: linear-gradient(160deg, #1a1d24, #2d3748);
     display: flex; align-items: center; justify-content: center;
     font-size: clamp(36px, 9vw, 64px);
-    box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 0 4px rgba(255,255,255,0.15);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
     user-select: none;
     object-fit: cover;
   }
   .hero-carousel .arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(0,0,0,0.5);
+    position: absolute; top: 45%; transform: translateY(-50%);
+    background: rgba(0,0,0,0.6);
     border: none;
     border-radius: 50%;
-    width: 36px; height: 36px;
+    width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 18px; color: #fff;
+    cursor: pointer; font-size: 16px; color: #fff;
     transition: background 0.15s; z-index: 10;
     user-select: none;
   }
-  .hero-carousel .arrow:hover { background: rgba(0,0,0,0.7); }
-  .hero-carousel .arrow.left  { left: 10px; }
-  .hero-carousel .arrow.right { right: 10px; }
+  .hero-carousel .arrow:hover { background: rgba(0,0,0,0.8); }
+  .hero-carousel .arrow.left  { left: 8px; }
+  .hero-carousel .arrow.right { right: 8px; }
+  /* 白い解説テキスト部分：スマホ画像に重ねて下に配置 */
+  .hero-text-block {
+    background: rgba(255,255,255,0.97);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 10px 16px 8px;
+    width: clamp(280px, 92vw, 380px);
+    position: relative;
+    z-index: 2;
+    margin-top: -60px;
+    order: 2;
+  }
+  .hero-title {
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .hero-title .line1 {
+    display: block;
+    text-align: left;
+    font-size: clamp(14px, 4vw, 20px);
+    color: var(--primary);
+    margin-bottom: 2px;
+  }
+  .hero-title .line2 {
+    display: block;
+    font-size: clamp(18px, 5vw, 28px);
+    color: var(--text);
+  }
+  .hero-catchbox {
+    display: inline-block;
+    background: var(--primary);
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: clamp(10px, 2.5vw, 13px);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0;
+  }
   .hero-ctas {
-    display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
-    width: 100%; max-width: 420px;
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    width: clamp(280px, 92vw, 380px);
+    order: 3;
+    margin-top: 16px;
   }
   .hero-btn {
     flex: 1 1 160px;
@@ -272,12 +277,13 @@
 
   /* ── PC（広い画面）：ファーストビューを左右2分割でよりインパクトのある配置に ── */
   @media (min-width: 860px) {
-    .hero { flex-direction: row; justify-content: center; align-items: center; gap: 64px; text-align: left; padding: 40px 40px; }
-    .hero-text-block { order: 1; background: rgba(255,255,255,0.95); padding: 24px 28px 20px; width: auto; max-width: 420px; }
-    .hero-carousel { order: 2; margin: 0; width: clamp(320px, 30vw, 420px); }
-    .hero-title .line2 { font-size: clamp(28px, 4.4vw, 46px); white-space: nowrap; }
-    .hero-catchbox { align-self: flex-start; }
-    .hero-ctas { justify-content: flex-start; max-width: 460px; }
+    .hero { flex-direction: row; justify-content: center; align-items: center; gap: 48px; text-align: left; padding: 40px 40px; }
+    .hero-text-block { order: 1; margin-top: 0; padding: 20px 24px 16px; width: auto; max-width: 380px; }
+    .hero-carousel { order: 2; margin: 0; width: clamp(300px, 28vw, 380px); }
+    .hero-title .line1 { font-size: clamp(16px, 2vw, 22px); }
+    .hero-title .line2 { font-size: clamp(24px, 3.5vw, 38px); white-space: nowrap; }
+    .hero-catchbox { align-self: flex-start; font-size: clamp(11px, 1.4vw, 14px); }
+    .hero-ctas { order: 3; justify-content: flex-start; width: auto; max-width: 380px; margin-top: 0; }
   }
 </style>
 </head>
@@ -385,10 +391,6 @@
     const root = document.getElementById('appRoot');
     root.innerHTML = `
       <section class="hero">
-        <div class="hero-text-block">
-          <p class="hero-title"><span class="line1">1作目</span><span class="line2">${escapeHtml(appDoc.name || '')}</span></p>
-          ${catchText ? `<p class="hero-catchbox">${escapeHtml(catchText)}</p>` : ''}
-        </div>
         <div class="hero-carousel">
           <div class="hero-carousel-viewport">
             <div class="hero-carousel-track">
@@ -404,6 +406,10 @@
           </div>
           <div class="arrow left" data-role="heroPrev">&#8249;</div>
           <div class="arrow right" data-role="heroNext">&#8250;</div>
+        </div>
+        <div class="hero-text-block">
+          <p class="hero-title"><span class="line1">1作目</span><span class="line2">${escapeHtml(appDoc.name || '')}</span></p>
+          ${catchText ? `<p class="hero-catchbox">${escapeHtml(catchText)}</p>` : ''}
         </div>
         <div class="hero-ctas">
           <a class="hero-btn guest" href="${escapeHtml(appDoc.guestLink || detailLink)}">ゲストで試す</a>
