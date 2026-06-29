@@ -60,7 +60,7 @@
     position: relative;
     overflow: hidden;
   }
-  /* スクリーンショット：2枚同時表示・先に配置 */
+  /* スクリーンショット：1枚ずつ表示・先に配置 */
   .hero-carousel {
     position: relative;
     width: clamp(280px, 92vw, 380px);
@@ -78,16 +78,10 @@
     cursor: grab;
   }
   .hero-carousel-track:active { cursor: grabbing; }
-  .hero-carousel-page {
+  .hero-screenshot {
     flex: 0 0 100%;
     width: 100%;
-    display: flex;
-    gap: clamp(6px, 1.5vw, 10px);
-  }
-  .hero-screenshot {
-    flex: 1 1 0;
-    min-width: 0;
-    aspect-ratio: 9/17;
+    aspect-ratio: 9/19.5;
     border-radius: 20px;
     background: linear-gradient(160deg, #1a1d24, #2d3748);
     display: flex; align-items: center; justify-content: center;
@@ -97,55 +91,55 @@
     object-fit: cover;
   }
   .hero-carousel .arrow {
-    position: absolute; top: 45%; transform: translateY(-50%);
-    background: rgba(0,0,0,0.6);
+    position: absolute; top: 40%; transform: translateY(-50%);
+    background: rgba(0,0,0,0.5);
     border: none;
     border-radius: 50%;
-    width: 32px; height: 32px;
+    width: 36px; height: 36px;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 16px; color: #fff;
+    cursor: pointer; font-size: 18px; color: #fff;
     transition: background 0.15s; z-index: 10;
     user-select: none;
   }
-  .hero-carousel .arrow:hover { background: rgba(0,0,0,0.8); }
-  .hero-carousel .arrow.left  { left: 8px; }
-  .hero-carousel .arrow.right { right: 8px; }
+  .hero-carousel .arrow:hover { background: rgba(0,0,0,0.7); }
+  .hero-carousel .arrow.left  { left: 12px; }
+  .hero-carousel .arrow.right { right: 12px; }
   /* 白い解説テキスト部分：スマホ画像に重ねて下に配置 */
   .hero-text-block {
     background: rgba(255,255,255,0.97);
     color: var(--text);
     border-radius: 14px;
-    padding: 10px 16px 8px;
+    padding: 8px 16px 6px;
     width: clamp(280px, 92vw, 380px);
     position: relative;
     z-index: 2;
-    margin-top: -60px;
+    margin-top: -100px;
     order: 2;
   }
   .hero-title {
     font-weight: 900;
-    line-height: 1.2;
-    margin-bottom: 4px;
+    line-height: 1.15;
+    margin-bottom: 2px;
   }
   .hero-title .line1 {
     display: block;
     text-align: left;
-    font-size: clamp(14px, 4vw, 20px);
+    font-size: clamp(12px, 3.5vw, 18px);
     color: var(--primary);
-    margin-bottom: 2px;
+    margin-bottom: 1px;
   }
   .hero-title .line2 {
     display: block;
-    font-size: clamp(18px, 5vw, 28px);
+    font-size: clamp(16px, 4.5vw, 26px);
     color: var(--text);
   }
   .hero-catchbox {
     display: inline-block;
     background: var(--primary);
     border: none;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: clamp(10px, 2.5vw, 13px);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: clamp(9px, 2.2vw, 12px);
     font-weight: 700;
     color: #fff;
     margin-bottom: 0;
@@ -394,14 +388,10 @@
         <div class="hero-carousel">
           <div class="hero-carousel-viewport">
             <div class="hero-carousel-track">
-              <div class="hero-carousel-page">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[0]}" alt="スクリーンショット1">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[1]}" alt="スクリーンショット2">
-              </div>
-              <div class="hero-carousel-page">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[2]}" alt="スクリーンショット3">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[3]}" alt="スクリーンショット4">
-              </div>
+              <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[0]}" alt="スクリーンショット1">
+              <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[1]}" alt="スクリーンショット2">
+              <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[2]}" alt="スクリーンショット3">
+              <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[3]}" alt="スクリーンショット4">
             </div>
           </div>
           <div class="arrow left" data-role="heroPrev">&#8249;</div>
@@ -447,7 +437,7 @@
     }, { threshold: 0.3 });
     items.forEach(item => observer.observe(item));
 
-    initHeroCarousel(root, 2); // 静的画像4枚を2ページで表示
+    initHeroCarousel(root, 4); // 静的画像4枚を1枚ずつ表示
   }
 
   function renderMoreApps(apps) {
