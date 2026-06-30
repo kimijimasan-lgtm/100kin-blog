@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script>history.scrollRestoration='manual';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PCスマホ連動メモ — 100均アプリ</title>
 <style>
@@ -357,9 +358,10 @@
 </footer>
 
 <script>
-  // PWAでスクロール位置が復元されないよう即時に無効化・リセット
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
   window.scrollTo(0, 0);
+  window.addEventListener('pageshow', function(e) {
+    if (e.persisted) window.scrollTo(0, 0);
+  });
 </script>
 
 <script type="module">
