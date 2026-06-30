@@ -2,19 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<script>
-history.scrollRestoration='manual';
-(function(){
-  if (!new URLSearchParams(window.location.search).has('t')) {
-    var s = window.location.search;
-    window.location.replace(window.location.pathname + (s ? s + '&' : '?') + 't=' + Date.now());
-  }
-})();
-</script>
+<script>history.scrollRestoration='manual';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <title>PCスマホ連動メモ — 100均アプリ</title>
 <style>
   :root {
@@ -29,8 +18,11 @@ history.scrollRestoration='manual';
     --header-h: 52px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  html, body { overflow-anchor: none; }
+  html {
+    scroll-behavior: smooth;
+    scroll-snap-type: y mandatory;
+    scroll-padding-top: var(--header-h);
+  }
   body {
     background: var(--bg); color: var(--text);
     font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
@@ -56,6 +48,7 @@ history.scrollRestoration='manual';
   /* ─── Page 1：スクリーンショット＋解説文（1画面） ─── */
   .viewer-section {
     height: calc(100dvh - var(--header-h));
+    scroll-snap-align: start;
     background: #16280f;
     display: flex;
     flex-direction: column;
@@ -172,6 +165,7 @@ history.scrollRestoration='manual';
 
   /* ─── Page 2：購入＋レビュー ─── */
   .detail-section {
+    scroll-snap-align: start;
     max-width: 480px;
     margin: 0 auto;
     padding: 28px 24px 60px;
@@ -281,7 +275,7 @@ history.scrollRestoration='manual';
   }
 </style>
 </head>
-<body onload="window.scrollTo(0,0)">
+<body>
 
 <header>
   <a class="logo-link" href="./index.html">100均アプリ</a>
@@ -369,13 +363,7 @@ history.scrollRestoration='manual';
   <a class="admin-link" href="admin/login.html">管理者</a>
 </footer>
 
-<script>
-  window.scrollTo(0, 0);
-  setTimeout(function() { window.scrollTo(0, 0); }, 100);
-  window.addEventListener('pageshow', function(e) {
-    if (e.persisted) { window.scrollTo(0, 0); setTimeout(function() { window.scrollTo(0, 0); }, 100); }
-  });
-</script>
+<script>window.scrollTo(0, 0);</script>
 
 <script type="module">
   import { db } from "./firebase-config.js";
