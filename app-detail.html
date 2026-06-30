@@ -17,6 +17,7 @@
     --header-h: 52px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   body {
     background: var(--bg); color: var(--text);
     font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
@@ -90,7 +91,7 @@
     height: 100%;
     object-fit: cover;
   }
-  /* 矢印：viewer-wrap内に配置 */
+  /* 矢印：viewer-wrap内に配置、表示/非表示はJSで制御 */
   .arrow {
     position: absolute; top: 32%; transform: translateY(-50%);
     background: rgba(0,0,0,0.5);
@@ -104,7 +105,7 @@
     user-select: none;
   }
   .arrow:hover { background: rgba(0,0,0,0.7); }
-  .arrow.left  { display: none; }
+  .arrow.left  { left: 10px; }
   .arrow.right { right: 10px; }
 
   /* 解説文側：viewer-wrap内の下部に重ねて配置 */
@@ -193,12 +194,43 @@
   .contact-link { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
   .contact-link a { color: var(--primary); }
 
-  /* レビュー */
+  /* レビューセクション */
+  .section-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--primary);
+    margin-bottom: 16px;
+  }
   .section-title {
     font-size: 13px; font-weight: 700; color: var(--primary);
-    letter-spacing: 0.1em; padding-bottom: 6px;
-    border-bottom: 2px solid var(--primary); margin-bottom: 16px;
+    letter-spacing: 0.1em;
+    flex: 1;
   }
+  .review-summary {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .view-all-btn {
+    display: block;
+    width: 100%;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    border: 1.5px solid var(--primary);
+    background: transparent;
+    color: var(--primary);
+    text-decoration: none;
+    margin-top: 12px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .view-all-btn:hover { background: var(--primary); color: #fff; }
   .review-card {
     background: var(--surface); border: 0.5px solid var(--border);
     border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
@@ -209,6 +241,7 @@
     background: var(--primary); color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; font-weight: 700;
+    flex-shrink: 0;
   }
   .reviewer { font-size: 13px; font-weight: 700; }
   .review-meta { font-size: 11px; color: var(--muted); }
@@ -238,7 +271,7 @@
 <body>
 
 <header>
-  <a class="logo-link" href="index.html">100均アプリ</a>
+  <a class="logo-link" href="./index.html">100均アプリ</a>
 </header>
 
 <div id="layout">
@@ -254,7 +287,8 @@
         <div class="screenshot-main">
           <div class="viewer-content" data-role="viewer"></div>
         </div>
-        <div class="arrow left" data-role="prev">&#8249;</div>
+        <!-- 最初のスライドでは非表示、JSで制御 -->
+        <div class="arrow left" data-role="prev" style="display:none">&#8249;</div>
         <div class="arrow right" data-role="next">&#8250;</div>
         <div class="slide-description" data-role="slideLabel"></div>
       </div>
@@ -291,9 +325,25 @@
     </div>
 
     <div id="reviews">
-      <p class="section-title">カスタマーレビュー</p>
+      <div class="section-title-row">
+        <span class="section-title">カスタマーレビュー</span>
+        <span class="review-summary" data-role="reviewSummary"></span>
+      </div>
       <div data-role="reviewList"></div>
+      <a class="view-all-btn" href="#all-reviews" data-role="viewAllBtn" style="display:none">すべてのレビューを見る →</a>
     </div>
+  </section>
+
+  <!-- ─── ページ区切り：全レビュー ─── -->
+  <div class="page-divider" id="all-reviews-divider">全 て の レ ビ ュ ー</div>
+
+  <!-- ─── Page 3：全レビュー一覧 ─── -->
+  <section class="detail-section" id="all-reviews">
+    <div class="section-title-row">
+      <span class="section-title">すべてのレビュー</span>
+      <span class="review-summary" data-role="allReviewSummary"></span>
+    </div>
+    <div data-role="allReviewList"></div>
   </section>
 
 </template>
@@ -315,7 +365,29 @@
     return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 
-  // 詳細ページ用スクリーンショット（6枚：トップページに表示しない残りの画像）
+  function buildReviewCard(r) {
+    const card = document.createElement('div');
+    card.className = 'review-card';
+    card.innerHTML = `
+      <div class="review-header">
+        <div class="avatar"></div>
+        <div>
+          <p class="reviewer"></p>
+          <p class="review-meta"></p>
+        </div>
+      </div>
+      <div class="review-stars"></div>
+      <p class="review-text"></p>
+    `;
+    card.querySelector('.avatar').textContent = (r.author || '?').charAt(0);
+    card.querySelector('.reviewer').textContent = r.author || '';
+    card.querySelector('.review-meta').textContent = r.date || '';
+    card.querySelector('.review-stars').textContent = starString(r.stars);
+    card.querySelector('.review-text').textContent = r.text || '';
+    return card;
+  }
+
+  // 詳細ページ用スクリーンショット（最初の2枚を即時ロード、残りはバックグラウンド）
   const STATIC_SLIDES = [
     { image: 'images/IMG_9271.PNG', description: 'メモの編集画面。シンプルで使いやすいエディタで快適に入力できます。' },
     { image: 'images/IMG_9272.PNG', description: '画像の貼り付けにも対応。スクリーンショットや写真をメモに追加できます。' },
@@ -340,6 +412,9 @@
       const reviews = [];
       reviewsSnap.forEach(r => reviews.push(r.data()));
 
+      // 日付降順（新しい順）にソート
+      reviews.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
       const tpl = document.getElementById('detailTemplate').content.cloneNode(true);
       layout.innerHTML = '';
       layout.appendChild(tpl);
@@ -353,44 +428,71 @@
       layout.querySelector('[data-role="stripeLink"]').href = appDoc.stripeLink || '#';
       layout.querySelector('[data-role="guestLink"]').href = appDoc.guestLink || '#';
 
-      const reviewListEl = layout.querySelector('[data-role="reviewList"]');
-      reviews.forEach(r => {
-        const card = document.createElement('div');
-        card.className = 'review-card';
-        card.innerHTML = `
-          <div class="review-header">
-            <div class="avatar">${(r.author || '?').charAt(0)}</div>
-            <div>
-              <p class="reviewer"></p>
-              <p class="review-meta"></p>
-            </div>
-          </div>
-          <div class="review-stars"></div>
-          <p class="review-text"></p>
-        `;
-        card.querySelector('.reviewer').textContent = r.author || '';
-        card.querySelector('.review-meta').textContent = r.date || '';
-        card.querySelector('.review-stars').textContent = starString(r.stars);
-        card.querySelector('.review-text').textContent = r.text || '';
-        reviewListEl.appendChild(card);
-      });
+      // 星平均の計算と表示
+      if (reviews.length > 0) {
+        const avg = (reviews.reduce((s, r) => s + (r.stars || 0), 0) / reviews.length).toFixed(1);
+        layout.querySelector('[data-role="reviewSummary"]').textContent = `★${avg} / ${reviews.length}件`;
+        layout.querySelector('[data-role="allReviewSummary"]').textContent = `${reviews.length}件`;
+      }
 
-      // 静的スライドを使用（Firestore非依存）
+      // 直近3件のみサマリー表示
+      const reviewListEl = layout.querySelector('[data-role="reviewList"]');
+      reviews.slice(0, 3).forEach(r => reviewListEl.appendChild(buildReviewCard(r)));
+
+      // 4件以上あるときのみ「すべて見る」ボタンと全レビューセクションを表示
+      if (reviews.length > 3) {
+        layout.querySelector('[data-role="viewAllBtn"]').style.display = 'block';
+        const allReviewListEl = layout.querySelector('[data-role="allReviewList"]');
+        reviews.forEach(r => allReviewListEl.appendChild(buildReviewCard(r)));
+      } else {
+        layout.querySelector('#all-reviews-divider').style.display = 'none';
+        layout.querySelector('#all-reviews').style.display = 'none';
+      }
+
+      // ─── スライダー：遅延読み込み ───
       const slides = STATIC_SLIDES;
-      let cur = 0;
       const viewerEl = layout.querySelector('[data-role="viewer"]');
       const descEl   = layout.querySelector('[data-role="slideLabel"]');
+      const prevBtn  = layout.querySelector('[data-role="prev"]');
+      const nextBtn  = layout.querySelector('[data-role="next"]');
+
+      // 画像プリロードキャッシュ
+      const preloaded = {};
+      function preload(src) {
+        if (!preloaded[src]) {
+          preloaded[src] = new Image();
+          preloaded[src].src = src;
+        }
+      }
+      // 最初の2枚を即時ロード（優先）
+      preload(slides[0].image);
+      if (slides.length > 1) preload(slides[1].image);
+      // 残りをブラウザのアイドル時にバックグラウンドロード
+      const lazyLoadRest = () => slides.slice(2).forEach(s => preload(s.image));
+      if ('requestIdleCallback' in window) requestIdleCallback(lazyLoadRest);
+      else setTimeout(lazyLoadRest, 800);
+
+      // 表示用imgエレメント（使い回しで切り替え）
+      const imgEl = document.createElement('img');
+      imgEl.alt = 'スクリーンショット';
+      viewerEl.appendChild(imgEl);
+
+      let cur = 0;
 
       function goTo(i) {
-        if (!slides.length) return;
         cur = (i + slides.length) % slides.length;
-        // 画像を表示
-        viewerEl.innerHTML = `<img src="${slides[cur].image}" alt="スクリーンショット ${cur + 1}">`;
+        imgEl.src = slides[cur].image;
         descEl.textContent = slides[cur].description;
+        // 最初のスライドは左矢印を非表示
+        prevBtn.style.display = cur === 0 ? 'none' : 'flex';
+        // 隣接スライドを先読み
+        preload(slides[(cur + 1) % slides.length].image);
+        if (cur > 0) preload(slides[cur - 1].image);
       }
+
       goTo(0);
-      layout.querySelector('[data-role="prev"]').addEventListener('click', () => goTo(cur - 1));
-      layout.querySelector('[data-role="next"]').addEventListener('click', () => goTo(cur + 1));
+      prevBtn.addEventListener('click', () => goTo(cur - 1));
+      nextBtn.addEventListener('click', () => goTo(cur + 1));
 
       // スワイプ対応
       const screenshotEl = layout.querySelector('.screenshot-main');
