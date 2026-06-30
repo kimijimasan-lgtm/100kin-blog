@@ -444,6 +444,14 @@
     });
 
     initHeroCarousel(root, 2); // 静的画像4枚を2ページで表示
+
+    const heroEl = root.querySelector('.hero');
+    const updateHeroMin = () => {
+      const st = document.querySelector('.sub-tagline');
+      if (heroEl && st) heroEl.style.minHeight = `calc(100dvh - 52px - ${st.offsetHeight}px)`;
+    };
+    updateHeroMin();
+    window.addEventListener('resize', updateHeroMin, { passive: true });
   }
 
   function renderMoreApps(apps) {
