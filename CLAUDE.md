@@ -2,7 +2,7 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-06-29（index.html・app-detail.html レイアウト調整）
+最終更新: 2026-06-30（app-detail.html ゼロからリライト・スクロール調査完了）
 
 ---
 
@@ -36,6 +36,33 @@
 ---
 
 ## 3. これまでの作業状況
+
+### app-detail.html ゼロからリライト（2026-06-30）
+
+**経緯:** スクロール位置が「3ページ目から始まる」と思われる症状を調査。試みた対策は以下の通り（すべて不要・削除済み）：
+- `history.scrollRestoration='manual'`（直接URL入力時には効かない仕様）
+- `window.location.replace(?t=タイムスタンプ)` 自己リダイレクト
+- `Cache-Control: no-cache/no-store` メタタグ
+- `overflow-anchor: none`
+- `onload="window.scrollTo(0,0)"`
+- `setTimeout` / `pageshow` によるスクロールリセット
+- `scroll-snap-type: y mandatory`
+- 1px ダミー要素
+
+**真の原因（最終判明）:** バグではなく正常動作だった。`index.html` の1・2ページと合わせた通し番号での誤解。`app-detail.html` を直接開けばスクリーンショットビューワーが最初に表示される。
+
+**実際に修正した本物のバグ:**
+- `window.scrollTo(0,0)` がFirebaseコンテンツ挿入前に実行されていた。Firebase非同期ロード後に `layout.innerHTML` が更新されるとSafariがスクロール位置を復元し、`scrollTo(0,0)` が無意味になっていた。**修正：`scrollTo(0,0)` と `requestAnimationFrame(() => scrollTo(0,0))` をtryブロック末尾（全DOM操作完了後）に移動**
+
+**リライト内容（`<template>` 廃止 → `innerHTML` 直接生成に変更）:**
+- 555行 → 429行に削減
+- `<template>` タグ廃止、`loadApp()` 内で `layout.innerHTML` にすべて直接生成
+- scroll-snap・スクロールハック類はすべて削除
+- `firebase.json` に `app-detail.html` の `Cache-Control: no-store` ヘッダー追加（サーバー側設定として残存）
+
+**index.html の修正（同日）:**
+- `scroll-hint`（「特徴を見る」↓ボタン）の `href="#features"` → `href="javascript:void(0)"` + JS `scrollIntoView()` に変更（URLハッシュ汚染の防止）
+- `app-detail.html` 内の `href="#"` リンク3箇所 → `href="javascript:void(0)"` に変更
 
 ### UI改修（2026-06-26〜2026-06-29）
 
@@ -131,9 +158,10 @@
    - `admin/dashboard.html` / `inquiries.html` / `mail-send.html` に `onAuthStateChanged` ガード＋ログアウトリンクを追加
    - `firestore.rules` を全面更新: `apps`/`reviews`/`inquiries` の管理者向け読み書きは `isAdmin()` 必須に。公開サイト向けの `published==true`／`hidden==false` 条件は維持（ORで両立）
    - 残課題: Googleログイン等の追加プロバイダーは未設定。管理者が複数人になる場合はメール1件のハードコードをFirestore側の `admins` コレクション等に変更する必要あり
-4. **index.htmlのUI調整**（進行中）
-   - 緑テキストエリアのpadding/margin追加調整（スマホ画像・ボタンとのバランス確認）
-   - 2ページ目「開発の動機」デコレーション微調整
+4. ~~**index.htmlのUI調整**~~ → **完了（2026-06-29〜2026-06-30）**
+   - 緑テキストエリアpadding縮小・タイトル/キャッチboxマージン調整済み
+   - 2ページ目「開発の動機」黄色マーカーデコレーション・ボタン文言変更済み
+   - `scroll-hint`のhref="#features"をJS scrollIntoViewに変更（URLハッシュ汚染防止）
 5. **ゲスト制限の実装**（パネル3枚・カード10枚）— 現状はlogin.html上の説明文のみで、実際の制限ロジックは未実装
 6. **Stripe本番リンクの発行**（現在はtestモードリンク）
 7. **一斉メール送信の実送信機能**（Firebase Functions + Resend/SendGridの実装）
