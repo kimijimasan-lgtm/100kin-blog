@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <script>history.scrollRestoration='manual';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>PCスマホ連動メモ — 100均アプリ</title>
 <style>
   :root {
@@ -19,6 +22,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
+  html, body { overflow-anchor: none; }
   body {
     background: var(--bg); color: var(--text);
     font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
@@ -269,7 +273,7 @@
   }
 </style>
 </head>
-<body>
+<body onload="window.scrollTo(0,0)">
 
 <header>
   <a class="logo-link" href="./index.html">100均アプリ</a>
@@ -359,8 +363,9 @@
 
 <script>
   window.scrollTo(0, 0);
+  setTimeout(function() { window.scrollTo(0, 0); }, 100);
   window.addEventListener('pageshow', function(e) {
-    if (e.persisted) window.scrollTo(0, 0);
+    if (e.persisted) { window.scrollTo(0, 0); setTimeout(function() { window.scrollTo(0, 0); }, 100); }
   });
 </script>
 
