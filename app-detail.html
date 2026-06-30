@@ -97,7 +97,6 @@
     user-select: none;
   }
   .arrow:hover { background: rgba(0,0,0,0.7); }
-  .arrow.left  { left: 10px; }
   .arrow.right { right: 10px; }
   .slide-description {
     position: absolute;
@@ -297,7 +296,6 @@
               <div class="screenshot-main">
                 <div class="viewer-content" id="viewer"></div>
               </div>
-              <div class="arrow left" id="prev" style="display:none">&#8249;</div>
               <div class="arrow right" id="next">&#8250;</div>
               <div class="slide-description" id="slideLabel"></div>
             </div>
@@ -385,7 +383,6 @@
       imgEl.alt = 'スクリーンショット';
       document.getElementById('viewer').appendChild(imgEl);
 
-      const prevBtn = document.getElementById('prev');
       const nextBtn = document.getElementById('next');
       const labelEl = document.getElementById('slideLabel');
       let cur = 0;
@@ -394,13 +391,11 @@
         cur = (i + SLIDES.length) % SLIDES.length;
         imgEl.src = SLIDES[cur].image;
         labelEl.textContent = SLIDES[cur].description;
-        prevBtn.style.display = cur === 0 ? 'none' : 'flex';
         preload(SLIDES[(cur + 1) % SLIDES.length].image);
         if (cur > 0) preload(SLIDES[cur - 1].image);
       }
 
       goTo(0);
-      prevBtn.addEventListener('click', () => goTo(cur - 1));
       nextBtn.addEventListener('click', () => goTo(cur + 1));
 
       const screenshotEl = layout.querySelector('.screenshot-main');

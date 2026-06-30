@@ -135,7 +135,6 @@
     user-select: none;
   }
   .hero-carousel .arrow:hover { background: #fff; }
-  .hero-carousel .arrow.left  { left: -14px; }
   .hero-carousel .arrow.right { right: -14px; }
   .hero-ctas {
     display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
@@ -331,7 +330,6 @@
     }
     setIndex(0, false);
 
-    carousel.querySelector('[data-role="heroPrev"]').addEventListener('click', () => setIndex(index - 1, true));
     carousel.querySelector('[data-role="heroNext"]').addEventListener('click', () => setIndex(index + 1, true));
 
     track.addEventListener('pointerdown', (e) => {
@@ -399,7 +397,6 @@
               </div>
             </div>
           </div>
-          <div class="arrow left" data-role="heroPrev">&#8249;</div>
           <div class="arrow right" data-role="heroNext">&#8250;</div>
         </div>
         <div class="hero-ctas">
