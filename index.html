@@ -51,12 +51,11 @@
 
   /* ── ファーストビュー（雑誌の表紙のようなインパクト） ── */
   .hero {
-    min-height: calc(100dvh - 52px);
     background: radial-gradient(circle at 50% 0%, #3d7536, var(--primary) 55%, var(--primary-dark));
     color: #fff;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     text-align: center;
-    padding: 18px 20px 28px;
+    padding: 28px 20px 36px;
     position: relative;
     overflow: hidden;
   }
@@ -269,7 +268,7 @@
 
   /* ── PC（広い画面）：ファーストビューを左右2分割でよりインパクトのある配置に ── */
   @media (min-width: 860px) {
-    .hero { flex-direction: row; justify-content: center; gap: 64px; text-align: left; padding: 0 40px; }
+    .hero { flex-direction: row; justify-content: center; align-items: center; gap: 64px; text-align: left; padding: 40px 40px; }
     .hero-carousel { order: 2; margin-bottom: 0; width: clamp(320px, 30vw, 420px); }
     .hero-text-block { order: 1; display: flex; flex-direction: column; align-items: flex-start; flex: 1 1 420px; max-width: 480px; }
     .hero-title .line2 { font-size: clamp(28px, 4.4vw, 46px); white-space: nowrap; }
