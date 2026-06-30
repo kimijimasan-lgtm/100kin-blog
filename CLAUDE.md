@@ -2,7 +2,7 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-06-30（app-detail.html ゼロからリライト・スクロール調査完了）
+最終更新: 2026-06-30（ヒーローレイアウト調整・トップバー文言追加・左矢印アイコン完全削除）
 
 ---
 
@@ -36,6 +36,36 @@
 ---
 
 ## 3. これまでの作業状況
+
+### ヒーローレイアウト調整・UI修正（2026-06-30 後半）
+
+**index.html ヒーローセクション:**
+- ヒーローの高さを `100dvh` に合わせる実装（JS で `height: calc(100dvh - 52px - <subTaglineHeight>px)` をインラインスタイルとして設定。sub-tagline の実測値を引くことで画面ぴったりに収まる）
+- `margin-top: auto` を `.hero-ctas` に追加し、「ゲストで試す」「購入する」ボタンをヒーロー最下部に固定
+- デスクトップ（860px以上）では `margin-top: 0` でリセット
+- `padding-bottom: 60px`（`scroll-hint` との重なり回避のため36px→60pxに変更）
+
+**app-detail.html トップバー:**
+- `<span class="back-hint">←トップページに戻るには</span>` を「100均アプリ」ボタンの右側に追加
+- スタイル: `color: #FFD700; font-weight: 700; font-size: 13px; margin-left: 14px; white-space: nowrap;`
+- 「←」はテキスト文字としてそのまま表示（アイコン素材は使用していない）
+
+**左矢印アイコン完全削除（CSS/HTML/JS 計8箇所）:**
+
+| # | ファイル | 種別 | 削除内容 |
+|---|---------|------|---------|
+| 1 | index.html | CSS | `.hero-carousel .arrow.left { left: -14px; }` |
+| 2 | index.html | HTML | `<div class="arrow left" data-role="heroPrev">&#8249;</div>` |
+| 3 | index.html | JS | `querySelector('[data-role="heroPrev"]').addEventListener(...)` |
+| 4 | app-detail.html | CSS | `.arrow.left { left: 10px; }` |
+| 5 | app-detail.html | HTML | `<div class="arrow left" id="prev" style="display:none">&#8249;</div>` |
+| 6 | app-detail.html | JS | `const prevBtn = document.getElementById('prev');` |
+| 7 | app-detail.html | JS | `prevBtn.style.display = cur === 0 ? 'none' : 'flex';` |
+| 8 | app-detail.html | JS | `prevBtn.addEventListener('click', () => goTo(cur - 1));` |
+
+- カルーセルは6枚の画像を右矢印（`›`）のみでループする仕様のため、左矢印は不要と確認済み
+
+---
 
 ### app-detail.html ゼロからリライト（2026-06-30）
 
@@ -162,10 +192,12 @@
    - 緑テキストエリアpadding縮小・タイトル/キャッチboxマージン調整済み
    - 2ページ目「開発の動機」黄色マーカーデコレーション・ボタン文言変更済み
    - `scroll-hint`のhref="#features"をJS scrollIntoViewに変更（URLハッシュ汚染防止）
-5. **ゲスト制限の実装**（パネル3枚・カード10枚）— 現状はlogin.html上の説明文のみで、実際の制限ロジックは未実装
-6. **Stripe本番リンクの発行**（現在はtestモードリンク）
-7. **一斉メール送信の実送信機能**（Firebase Functions + Resend/SendGridの実装）
-8. **大量アクセス対策**（設計書6章）— Cloudflare導入、ウェイティングリスト等は紹介前に着手
+5. **カルーセル1枚目の画像差し替え**（画像ファイルの準備が必要）
+6. **PWAホーム画面追加の案内モーダル実装**（index.htmlへの実装はまだ未着手）
+7. **ゲスト制限の実装**（パネル3枚・カード10枚）— 現状はlogin.html上の説明文のみで、実際の制限ロジックは未実装
+8. **Stripe本番リンクの発行**（現在はtestモードリンク）
+9. **一斉メール送信の実送信機能**（Firebase Functions + Resend/SendGridの実装）
+10. **大量アクセス対策**（設計書6章）— Cloudflare導入、ウェイティングリスト等は紹介前に着手
 
 ---
 
