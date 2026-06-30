@@ -226,8 +226,6 @@
   <a class="admin-link" href="admin/login.html">管理者</a>
 </footer>
 
-<script>window.scrollTo(0, 0);</script>
-
 <script type="module">
   import { db } from "./firebase-config.js";
   import { doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
@@ -415,6 +413,10 @@
         dragX = 0;
       });
       screenshotEl.addEventListener('pointercancel', () => { dragging = false; dragX = 0; });
+
+      // コンテンツ挿入後にスクロール位置をトップに戻す
+      window.scrollTo(0, 0);
+      requestAnimationFrame(() => window.scrollTo(0, 0));
 
     } catch (err) {
       console.error('アプリ詳細の読み込みに失敗しました', err);
