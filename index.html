@@ -51,7 +51,6 @@
 
   /* ── ファーストビュー（雑誌の表紙のようなインパクト） ── */
   .hero {
-    min-height: calc(100dvh - 52px);
     background: radial-gradient(circle at 50% 0%, #3d7536, var(--primary) 55%, var(--primary-dark));
     color: #fff;
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
@@ -444,14 +443,6 @@
     });
 
     initHeroCarousel(root, 2); // 静的画像4枚を2ページで表示
-
-    const heroEl = root.querySelector('.hero');
-    const updateHeroMin = () => {
-      const st = document.querySelector('.sub-tagline');
-      if (heroEl && st) heroEl.style.minHeight = `calc(100dvh - 52px - ${st.offsetHeight}px)`;
-    };
-    updateHeroMin();
-    window.addEventListener('resize', updateHeroMin, { passive: true });
   }
 
   function renderMoreApps(apps) {
