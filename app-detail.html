@@ -2,7 +2,6 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<script>history.scrollRestoration='manual';</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PCスマホ連動メモ — 100均アプリ</title>
 <style>
@@ -18,37 +17,31 @@
     --header-h: 52px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html {
-    scroll-behavior: smooth;
-    scroll-snap-type: y mandatory;
-    scroll-padding-top: var(--header-h);
-  }
+  html { scroll-behavior: smooth; }
   body {
     background: var(--bg); color: var(--text);
     font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
-    padding-top: 52px;
+    padding-top: var(--header-h);
   }
 
   /* 固定ヘッダー */
   header {
     background: var(--primary);
     padding: 0 24px;
-    height: 52px; min-height: 52px; max-height: 52px;
-    overflow: hidden;
+    height: var(--header-h);
     position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    display: flex; align-items: center; gap: 14px;
+    display: flex; align-items: center;
   }
-  header a.logo-link {
+  header a {
     color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.06em;
     border: 2px solid #fff; padding: 3px 12px; border-radius: 6px;
-    white-space: nowrap; flex-shrink: 0; text-decoration: none;
+    text-decoration: none;
   }
-  header a.logo-link:hover { opacity: 0.85; }
+  header a:hover { opacity: 0.85; }
 
-  /* ─── Page 1：スクリーンショット＋解説文（1画面） ─── */
+  /* ─── スクリーンショットビューワー ─── */
   .viewer-section {
     height: calc(100dvh - var(--header-h));
-    scroll-snap-align: start;
     background: #16280f;
     display: flex;
     flex-direction: column;
@@ -56,8 +49,6 @@
     padding: 16px 24px 0;
     overflow: hidden;
   }
-
-  /* スクショ＋解説のフレックスコンテナ */
   .viewer-area {
     flex: 1 1 0;
     min-height: 0;
@@ -66,8 +57,6 @@
     width: 92%;
     max-width: 400px;
   }
-
-  /* スクショコンテナ：position:relativeで解説ボックスの基準 */
   .viewer-wrap {
     flex: 1 1 0;
     min-height: 0;
@@ -78,7 +67,6 @@
   }
   .screenshot-main {
     width: 100%;
-    height: auto;
     max-height: 100%;
     aspect-ratio: 9/19.5;
     border-radius: 24px;
@@ -86,24 +74,15 @@
     box-shadow: 0 4px 24px rgba(0,0,0,0.14);
   }
   .viewer-content {
-    width: 100%;
-    height: 100%;
+    width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 64px;
     background: #000;
   }
-  .viewer-content img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  /* 矢印：viewer-wrap内に配置、表示/非表示はJSで制御 */
+  .viewer-content img { width: 100%; height: 100%; object-fit: cover; }
   .arrow {
     position: absolute; top: 32%; transform: translateY(-50%);
     background: rgba(0,0,0,0.5);
-    border: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    border-radius: 50%;
+    border: none; border-radius: 50%;
     width: 44px; height: 44px;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; font-size: 22px; color: #fff;
@@ -113,80 +92,57 @@
   .arrow:hover { background: rgba(0,0,0,0.7); }
   .arrow.left  { left: 10px; }
   .arrow.right { right: 10px; }
-
-  /* 解説文側：viewer-wrap内の下部に重ねて配置 */
   .slide-description {
     position: absolute;
-    bottom: 16px;
-    left: 14px;
-    right: 14px;
-    max-height: 30%;
-    overflow-y: auto;
+    bottom: 16px; left: 14px; right: 14px;
+    max-height: 30%; overflow-y: auto;
     background: #1e40af;
     border: 3px solid #ffffff;
     border-radius: 14px;
     padding: 14px 16px;
-    font-size: 15px;
-    font-weight: 900;
-    line-height: 1.65;
+    font-size: 15px; font-weight: 900; line-height: 1.65;
     color: #FFFF00;
     z-index: 5;
     box-shadow: 0 6px 24px rgba(0,0,0,0.35);
   }
-
-  /* スクロールヒント */
-  .page-scroll-hint {
+  .scroll-hint {
     flex-shrink: 0;
     padding: 10px 0 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    color: var(--muted);
-    font-size: 11px;
-    animation: hint-bounce 2s ease-in-out infinite;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); font-size: 11px;
+    animation: bounce 2s ease-in-out infinite;
   }
-  .page-scroll-hint svg { width: 16px; height: 16px; }
-  @keyframes hint-bounce {
+  .scroll-hint svg { width: 16px; height: 16px; }
+  @keyframes bounce {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(4px); }
   }
 
-  /* ─── ページ区切り ─── */
-  .page-divider {
-    background: var(--primary);
-    color: #fff;
-    text-align: center;
-    padding: 10px 24px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-  }
-
-  /* ─── Page 2：購入＋レビュー ─── */
+  /* ─── 詳細・購入セクション ─── */
   .detail-section {
-    scroll-snap-align: start;
     max-width: 480px;
     margin: 0 auto;
     padding: 28px 24px 60px;
   }
-
+  .section-divider {
+    background: var(--primary); color: #fff;
+    text-align: center; padding: 10px 24px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+  }
   .app-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
   .app-catch { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
   .stars-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
   .stars { color: var(--accent); font-size: 16px; }
-  .review-link { font-size: 13px; color: var(--primary); }
+  .review-link { font-size: 13px; color: var(--primary); cursor: pointer; }
 
   .purchase-box {
     background: var(--surface);
     border: 0.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 32px;
+    padding: 20px; margin-bottom: 32px;
   }
   .price { font-size: 28px; font-weight: 700; margin-bottom: 16px; line-height: 1.3; }
   .price span { font-size: 13px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
-
   .btn {
     display: block; width: 100%; padding: 13px;
     border-radius: 8px; font-size: 15px; font-weight: 700;
@@ -197,44 +153,25 @@
   .btn-primary:hover { background: #c98910; }
   .btn-secondary { background: var(--bg); color: var(--text); border: 0.5px solid var(--border); font-size: 14px; }
   .btn-secondary:hover { background: var(--border); }
-
   .contact-link { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
-  .contact-link a { color: var(--primary); }
+  .contact-link a { color: var(--primary); cursor: pointer; }
 
-  /* レビューセクション */
+  /* レビュー */
   .section-title-row {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
+    display: flex; align-items: baseline; gap: 10px;
     padding-bottom: 6px;
     border-bottom: 2px solid var(--primary);
     margin-bottom: 16px;
   }
-  .section-title {
-    font-size: 13px; font-weight: 700; color: var(--primary);
-    letter-spacing: 0.1em;
-    flex: 1;
-  }
-  .review-summary {
-    font-size: 13px;
-    color: var(--accent);
-    font-weight: 700;
-    white-space: nowrap;
-  }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--primary); letter-spacing: 0.1em; flex: 1; }
+  .review-summary { font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
   .view-all-btn {
-    display: block;
-    width: 100%;
-    padding: 11px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    text-align: center;
-    cursor: pointer;
+    display: block; width: 100%; padding: 11px;
+    border-radius: 8px; font-size: 14px; font-weight: 700;
+    text-align: center; cursor: pointer;
     border: 1.5px solid var(--primary);
-    background: transparent;
-    color: var(--primary);
-    text-decoration: none;
-    margin-top: 12px;
+    background: transparent; color: var(--primary);
+    text-decoration: none; margin-top: 12px;
     transition: background 0.15s, color 0.15s;
   }
   .view-all-btn:hover { background: var(--primary); color: #fff; }
@@ -247,8 +184,7 @@
     width: 32px; height: 32px; border-radius: 50%;
     background: var(--primary); color: #fff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 700;
-    flex-shrink: 0;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
   }
   .reviewer { font-size: 13px; font-weight: 700; }
   .review-meta { font-size: 11px; color: var(--muted); }
@@ -263,13 +199,10 @@
   footer a:hover { color: #fff; }
   footer .admin-link {
     color: rgba(184,217,178,0.35); font-size: 10px;
-    border: none; background: none; cursor: pointer;
-    font-family: inherit;
   }
   footer .admin-link:hover { color: rgba(184,217,178,0.7); }
 
   @media (max-width: 480px) {
-    .viewer-content { font-size: 48px; }
     .screenshot-main { border-radius: 22px; }
     .arrow { width: 40px; height: 40px; font-size: 20px; }
   }
@@ -277,85 +210,13 @@
 </head>
 <body>
 
-<div aria-hidden="true" style="position:absolute;top:0;left:0;width:1px;height:1px;overflow:hidden;font-size:0;"></div>
-
 <header>
-  <a class="logo-link" href="./index.html">100均アプリ</a>
+  <a href="./index.html">100均アプリ</a>
 </header>
 
 <div id="layout">
   <p style="text-align:center; color:var(--muted); font-size:13px; padding:80px 20px;">読み込み中...</p>
 </div>
-
-<template id="detailTemplate">
-
-  <!-- ─── Page 1：スクリーンショット＋解説文（1画面） ─── -->
-  <section class="viewer-section">
-    <div class="viewer-area">
-      <div class="viewer-wrap">
-        <div class="screenshot-main">
-          <div class="viewer-content" data-role="viewer"></div>
-        </div>
-        <!-- 最初のスライドでは非表示、JSで制御 -->
-        <div class="arrow left" data-role="prev" style="display:none">&#8249;</div>
-        <div class="arrow right" data-role="next">&#8250;</div>
-        <div class="slide-description" data-role="slideLabel"></div>
-      </div>
-    </div>
-    <div class="page-scroll-hint">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-      <span>詳細・購入へ</span>
-    </div>
-  </section>
-
-  <!-- ─── ページ区切り ─── -->
-  <div class="page-divider">詳 細 ・ 購 入</div>
-
-  <!-- ─── Page 2：購入＋レビュー ─── -->
-  <section class="detail-section">
-    <p class="app-name" data-role="name"></p>
-    <p class="app-catch" data-role="catch"></p>
-    <div class="stars-row">
-      <span class="stars" data-role="stars"></span>
-      <a class="review-link" href="javascript:void(0)" data-role="reviewCount"></a>
-    </div>
-
-    <div class="purchase-box">
-      <p class="price" data-role="price"></p>
-      <a class="btn btn-primary" data-role="stripeLink" target="_blank">
-        購入してログイン
-      </a>
-      <a class="btn btn-secondary" data-role="guestLink">
-        ゲストで試してみる
-      </a>
-      <div class="contact-link">
-        <a href="javascript:void(0)" data-role="reviewPostLink">アプリのレビューを投稿する ↓</a>
-      </div>
-    </div>
-
-    <div id="reviews">
-      <div class="section-title-row">
-        <span class="section-title">カスタマーレビュー</span>
-        <span class="review-summary" data-role="reviewSummary"></span>
-      </div>
-      <div data-role="reviewList"></div>
-      <a class="view-all-btn" href="javascript:void(0)" data-role="viewAllBtn" style="display:none">すべてのレビューを見る →</a>
-    </div>
-  </section>
-
-  <!-- ─── ページ区切り：全レビュー ─── -->
-  <div class="page-divider" id="all-reviews-divider">全 て の レ ビ ュ ー</div>
-
-  <!-- ─── Page 3：全レビュー一覧 ─── -->
-  <section class="detail-section" id="all-reviews">
-    <div class="section-title-row">
-      <span class="section-title">すべてのレビュー</span>
-      <span class="review-summary" data-role="allReviewSummary"></span>
-    </div>
-    <div data-role="allReviewList"></div>
-  </section>
-
-</template>
 
 <footer>
   <a href="index.html">ホームに戻る</a>
@@ -371,9 +232,9 @@
   import { db } from "./firebase-config.js";
   import { doc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  function starString(stars) {
-    const full = Math.round(stars || 0);
-    return '★'.repeat(full) + '☆'.repeat(5 - full);
+  function starString(n) {
+    const s = Math.round(n || 0);
+    return '★'.repeat(s) + '☆'.repeat(5 - s);
   }
 
   function buildReviewCard(r) {
@@ -382,10 +243,7 @@
     card.innerHTML = `
       <div class="review-header">
         <div class="avatar"></div>
-        <div>
-          <p class="reviewer"></p>
-          <p class="review-meta"></p>
-        </div>
+        <div><p class="reviewer"></p><p class="review-meta"></p></div>
       </div>
       <div class="review-stars"></div>
       <p class="review-text"></p>
@@ -398,8 +256,7 @@
     return card;
   }
 
-  // 詳細ページ用スクリーンショット（最初の2枚を即時ロード、残りはバックグラウンド）
-  const STATIC_SLIDES = [
+  const SLIDES = [
     { image: 'images/IMG_9271.PNG', description: 'メモの編集画面。シンプルで使いやすいエディタで快適に入力できます。' },
     { image: 'images/IMG_9272.PNG', description: '画像の貼り付けにも対応。スクリーンショットや写真をメモに追加できます。' },
     { image: 'images/IMG_9273.PNG', description: '縦画像は自動で2列レイアウト。複数の画像も見やすく整理されます。' },
@@ -409,127 +266,145 @@
   ];
 
   async function loadApp() {
-    const params = new URLSearchParams(window.location.search);
-    const appId = params.get('app') || 'memo-sync';
+    const appId = new URLSearchParams(window.location.search).get('app') || 'memo-sync';
     const layout = document.getElementById('layout');
 
     try {
       const appSnap = await getDoc(doc(db, 'apps', appId));
       if (!appSnap.exists()) throw new Error('app not found');
-      const appDoc = appSnap.data();
+      const app = appSnap.data();
 
-      const reviewsQuery = query(collection(db, 'apps', appId, 'reviews'), where('hidden', '==', false));
-      const reviewsSnap = await getDocs(reviewsQuery);
+      const reviewsSnap = await getDocs(query(collection(db, 'apps', appId, 'reviews'), where('hidden', '==', false)));
       const reviews = [];
       reviewsSnap.forEach(r => reviews.push(r.data()));
-
-      // 日付降順（新しい順）にソート
       reviews.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-      const tpl = document.getElementById('detailTemplate').content.cloneNode(true);
-      layout.innerHTML = '';
-      layout.appendChild(tpl);
+      const avg = reviews.length
+        ? (reviews.reduce((s, r) => s + (r.stars || 0), 0) / reviews.length).toFixed(1)
+        : null;
 
-      document.title = `${appDoc.name} — 100均アプリ`;
-      layout.querySelector('[data-role="name"]').textContent = appDoc.name || '';
-      layout.querySelector('[data-role="catch"]').textContent = (appDoc.catchWords || []).join('');
-      layout.querySelector('[data-role="stars"]').textContent = starString(appDoc.stars);
-      layout.querySelector('[data-role="reviewCount"]').textContent = `${reviews.length}件のレビュー`;
-      layout.querySelector('[data-role="price"]').innerHTML = `¥${appDoc.price ?? ''}<br><span>（買い切り）</span>`;
-      layout.querySelector('[data-role="stripeLink"]').href = appDoc.stripeLink || '#';
-      layout.querySelector('[data-role="guestLink"]').href = appDoc.guestLink || '#';
+      layout.innerHTML = `
+        <!-- スクリーンショットビューワー -->
+        <section class="viewer-section">
+          <div class="viewer-area">
+            <div class="viewer-wrap">
+              <div class="screenshot-main">
+                <div class="viewer-content" id="viewer"></div>
+              </div>
+              <div class="arrow left" id="prev" style="display:none">&#8249;</div>
+              <div class="arrow right" id="next">&#8250;</div>
+              <div class="slide-description" id="slideLabel"></div>
+            </div>
+          </div>
+          <div class="scroll-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            <span>詳細・購入へ</span>
+          </div>
+        </section>
 
-      // 星平均の計算と表示
-      if (reviews.length > 0) {
-        const avg = (reviews.reduce((s, r) => s + (r.stars || 0), 0) / reviews.length).toFixed(1);
-        layout.querySelector('[data-role="reviewSummary"]').textContent = `★${avg} / ${reviews.length}件`;
-        layout.querySelector('[data-role="allReviewSummary"]').textContent = `${reviews.length}件`;
-      }
+        <!-- 詳細・購入 -->
+        <div class="section-divider">詳 細 ・ 購 入</div>
+        <section class="detail-section">
+          <p class="app-name"></p>
+          <p class="app-catch"></p>
+          <div class="stars-row">
+            <span class="stars"></span>
+            <span class="review-link">${reviews.length}件のレビュー</span>
+          </div>
+          <div class="purchase-box">
+            <p class="price">¥${app.price ?? ''}<br><span>（買い切り）</span></p>
+            <a class="btn btn-primary" href="${app.stripeLink || '#'}" target="_blank">購入してログイン</a>
+            <a class="btn btn-secondary" href="${app.guestLink || '#'}">ゲストで試してみる</a>
+            <div class="contact-link">
+              <a id="reviewPostLink">アプリのレビューを投稿する ↓</a>
+            </div>
+          </div>
+          <div id="reviews">
+            <div class="section-title-row">
+              <span class="section-title">カスタマーレビュー</span>
+              ${avg ? `<span class="review-summary">★${avg} / ${reviews.length}件</span>` : ''}
+            </div>
+            <div id="reviewList"></div>
+            ${reviews.length > 3 ? '<a class="view-all-btn" id="viewAllBtn">すべてのレビューを見る →</a>' : ''}
+          </div>
+        </section>
 
-      // 直近3件のみサマリー表示
-      const reviewListEl = layout.querySelector('[data-role="reviewList"]');
+        ${reviews.length > 3 ? `
+          <div class="section-divider">全 て の レ ビ ュ ー</div>
+          <section class="detail-section" id="all-reviews">
+            <div class="section-title-row">
+              <span class="section-title">すべてのレビュー</span>
+              <span class="review-summary">${reviews.length}件</span>
+            </div>
+            <div id="allReviewList"></div>
+          </section>
+        ` : ''}
+      `;
+
+      document.title = `${app.name} — 100均アプリ`;
+      layout.querySelector('.app-name').textContent = app.name || '';
+      layout.querySelector('.app-catch').textContent = (app.catchWords || []).join('');
+      layout.querySelector('.stars').textContent = starString(app.stars);
+
+      const reviewListEl = layout.querySelector('#reviewList');
       reviews.slice(0, 3).forEach(r => reviewListEl.appendChild(buildReviewCard(r)));
 
-      // ハッシュをURLに残さないスムーズスクロール（PWAでURLが汚染されないよう）
-      function scrollToEl(selector) {
-        const el = layout.querySelector(selector);
-        if (el) el.scrollIntoView({ behavior: 'smooth' });
-      }
-      layout.querySelector('[data-role="reviewCount"]').addEventListener('click', e => {
-        e.preventDefault(); scrollToEl('#reviews');
-      });
-      layout.querySelector('[data-role="reviewPostLink"]').addEventListener('click', e => {
-        e.preventDefault(); scrollToEl('#reviews');
-      });
-      layout.querySelector('[data-role="viewAllBtn"]').addEventListener('click', e => {
-        e.preventDefault(); scrollToEl('#all-reviews');
-      });
-
-      // 4件以上あるときのみ「すべて見る」ボタンと全レビューセクションを表示
       if (reviews.length > 3) {
-        layout.querySelector('[data-role="viewAllBtn"]').style.display = 'block';
-        const allReviewListEl = layout.querySelector('[data-role="allReviewList"]');
-        reviews.forEach(r => allReviewListEl.appendChild(buildReviewCard(r)));
-      } else {
-        layout.querySelector('#all-reviews-divider').style.display = 'none';
-        layout.querySelector('#all-reviews').style.display = 'none';
+        const allListEl = layout.querySelector('#allReviewList');
+        reviews.forEach(r => allListEl.appendChild(buildReviewCard(r)));
+        layout.querySelector('#viewAllBtn').addEventListener('click', () => {
+          document.getElementById('all-reviews').scrollIntoView({ behavior: 'smooth' });
+        });
       }
 
-      // ─── スライダー：遅延読み込み ───
-      const slides = STATIC_SLIDES;
-      const viewerEl = layout.querySelector('[data-role="viewer"]');
-      const descEl   = layout.querySelector('[data-role="slideLabel"]');
-      const prevBtn  = layout.querySelector('[data-role="prev"]');
-      const nextBtn  = layout.querySelector('[data-role="next"]');
+      layout.querySelector('.review-link').addEventListener('click', () => {
+        document.getElementById('reviews').scrollIntoView({ behavior: 'smooth' });
+      });
+      layout.querySelector('#reviewPostLink').addEventListener('click', () => {
+        document.getElementById('reviews').scrollIntoView({ behavior: 'smooth' });
+      });
 
-      // 画像プリロードキャッシュ
+      // ─── スライダー ───
       const preloaded = {};
       function preload(src) {
-        if (!preloaded[src]) {
-          preloaded[src] = new Image();
-          preloaded[src].src = src;
-        }
+        if (!preloaded[src]) { preloaded[src] = new Image(); preloaded[src].src = src; }
       }
-      // 最初の2枚を即時ロード（優先）
-      preload(slides[0].image);
-      if (slides.length > 1) preload(slides[1].image);
-      // 残りをブラウザのアイドル時にバックグラウンドロード
-      const lazyLoadRest = () => slides.slice(2).forEach(s => preload(s.image));
+      preload(SLIDES[0].image);
+      if (SLIDES.length > 1) preload(SLIDES[1].image);
+      const lazyLoadRest = () => SLIDES.slice(2).forEach(s => preload(s.image));
       if ('requestIdleCallback' in window) requestIdleCallback(lazyLoadRest);
       else setTimeout(lazyLoadRest, 800);
 
-      // 表示用imgエレメント（使い回しで切り替え）
       const imgEl = document.createElement('img');
       imgEl.alt = 'スクリーンショット';
-      viewerEl.appendChild(imgEl);
+      document.getElementById('viewer').appendChild(imgEl);
 
+      const prevBtn = document.getElementById('prev');
+      const nextBtn = document.getElementById('next');
+      const labelEl = document.getElementById('slideLabel');
       let cur = 0;
 
       function goTo(i) {
-        cur = (i + slides.length) % slides.length;
-        imgEl.src = slides[cur].image;
-        descEl.textContent = slides[cur].description;
-        // 最初のスライドは左矢印を非表示
+        cur = (i + SLIDES.length) % SLIDES.length;
+        imgEl.src = SLIDES[cur].image;
+        labelEl.textContent = SLIDES[cur].description;
         prevBtn.style.display = cur === 0 ? 'none' : 'flex';
-        // 隣接スライドを先読み
-        preload(slides[(cur + 1) % slides.length].image);
-        if (cur > 0) preload(slides[cur - 1].image);
+        preload(SLIDES[(cur + 1) % SLIDES.length].image);
+        if (cur > 0) preload(SLIDES[cur - 1].image);
       }
 
       goTo(0);
       prevBtn.addEventListener('click', () => goTo(cur - 1));
       nextBtn.addEventListener('click', () => goTo(cur + 1));
 
-      // スワイプ対応
       const screenshotEl = layout.querySelector('.screenshot-main');
       let dragging = false, startX = 0, dragX = 0;
-      screenshotEl.addEventListener('pointerdown', (e) => {
+      screenshotEl.addEventListener('pointerdown', e => {
         dragging = true; startX = e.clientX; dragX = 0;
         screenshotEl.setPointerCapture(e.pointerId);
       });
-      screenshotEl.addEventListener('pointermove', (e) => {
-        if (!dragging) return;
-        dragX = e.clientX - startX;
+      screenshotEl.addEventListener('pointermove', e => {
+        if (dragging) dragX = e.clientX - startX;
       });
       screenshotEl.addEventListener('pointerup', () => {
         if (!dragging) return;
