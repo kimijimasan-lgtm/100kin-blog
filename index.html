@@ -406,7 +406,7 @@
           <a class="hero-btn guest" href="${escapeHtml(appDoc.guestLink || detailLink)}">ゲストで試す</a>
           <a class="hero-btn purchase" href="${escapeHtml(appDoc.stripeLink || detailLink)}" target="_blank">購入する</a>
         </div>
-        <a class="scroll-hint" href="#features">
+        <a class="scroll-hint" href="javascript:void(0)">
           <span>特徴を見る</span>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
         </a>
@@ -437,6 +437,11 @@
       });
     }, { threshold: 0.3 });
     items.forEach(item => observer.observe(item));
+
+    root.querySelector('.scroll-hint').addEventListener('click', e => {
+      e.preventDefault();
+      document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+    });
 
     initHeroCarousel(root, 2); // 静的画像4枚を2ページで表示
   }
