@@ -308,7 +308,7 @@
     <p class="app-catch" data-role="catch"></p>
     <div class="stars-row">
       <span class="stars" data-role="stars"></span>
-      <a class="review-link" href="#reviews" data-role="reviewCount"></a>
+      <a class="review-link" href="#" data-role="reviewCount"></a>
     </div>
 
     <div class="purchase-box">
@@ -320,7 +320,7 @@
         ゲストで試してみる
       </a>
       <div class="contact-link">
-        <a href="#reviews">アプリのレビューを投稿する ↓</a>
+        <a href="#" data-role="reviewPostLink">アプリのレビューを投稿する ↓</a>
       </div>
     </div>
 
@@ -330,7 +330,7 @@
         <span class="review-summary" data-role="reviewSummary"></span>
       </div>
       <div data-role="reviewList"></div>
-      <a class="view-all-btn" href="#all-reviews" data-role="viewAllBtn" style="display:none">すべてのレビューを見る →</a>
+      <a class="view-all-btn" href="#" data-role="viewAllBtn" style="display:none">すべてのレビューを見る →</a>
     </div>
   </section>
 
@@ -355,6 +355,12 @@
   © 2026 100均アプリ — siro
   <a class="admin-link" href="admin/login.html">管理者</a>
 </footer>
+
+<script>
+  // PWAでスクロール位置が復元されないよう即時に無効化・リセット
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  window.scrollTo(0, 0);
+</script>
 
 <script type="module">
   import { db } from "./firebase-config.js";
@@ -438,6 +444,21 @@
       // 直近3件のみサマリー表示
       const reviewListEl = layout.querySelector('[data-role="reviewList"]');
       reviews.slice(0, 3).forEach(r => reviewListEl.appendChild(buildReviewCard(r)));
+
+      // ハッシュをURLに残さないスムーズスクロール（PWAでURLが汚染されないよう）
+      function scrollToEl(selector) {
+        const el = layout.querySelector(selector);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+      layout.querySelector('[data-role="reviewCount"]').addEventListener('click', e => {
+        e.preventDefault(); scrollToEl('#reviews');
+      });
+      layout.querySelector('[data-role="reviewPostLink"]').addEventListener('click', e => {
+        e.preventDefault(); scrollToEl('#reviews');
+      });
+      layout.querySelector('[data-role="viewAllBtn"]').addEventListener('click', e => {
+        e.preventDefault(); scrollToEl('#all-reviews');
+      });
 
       // 4件以上あるときのみ「すべて見る」ボタンと全レビューセクションを表示
       if (reviews.length > 3) {
