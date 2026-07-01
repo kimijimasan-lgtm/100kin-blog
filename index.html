@@ -322,43 +322,85 @@
     let dragging = false;
     let startX = 0;
     let dragX = 0;
-    let w = 0; // viewport width in px (cached on pointerdown)
-
-    function setIndex(i, animate) {
-      index = (i + pageCount) % pageCount;
+    let w = 0;
+    function goTo(i, animate) {
+      index = Math.max(0, Math.min(i, pageCount - 1));
       const px = viewport.getBoundingClientRect().width;
       track.style.transition = animate ? 'transform 0.3s ease' : 'none';
       track.style.transform = `translateX(${-index * px}px)`;
     }
-    setIndex(0, false);
+    goTo(0, false);
 
-    track.addEventListener('pointerdown', (e) => {
+    function startDrag(clientX) {
       dragging = true;
-      startX = e.clientX;
+      startX = clientX;
       dragX = 0;
       w = viewport.getBoundingClientRect().width;
       track.style.transition = 'none';
+    }
+
+    function moveDrag(clientX) {
+      if (!dragging) return;
+      dragX = clientX - startX;
+      // 端でのラバーバンド（30% に減衰）
+      let d = dragX;
+      if (index === 0 && d > 0) d *= 0.3;
+      if (index === pageCount - 1 && d < 0) d *= 0.3;
+      track.style.transform = `translateX(${-index * w + d}px)`;
+    }
+
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      if (dragX > w * 0.15 && index > 0) goTo(index - 1, true);
+      else if (dragX < -w * 0.15 && index < pageCount - 1) goTo(index + 1, true);
+      else goTo(index, true);
+      dragX = 0;
+    }
+
+    function cancelDrag() {
+      if (!dragging) return;
+      dragging = false;
+      dragX = 0;
+      goTo(index, true);
+    }
+
+    // マウス・ペン: Pointer Events で処理。touch は除外（下の Touch Events が担当）
+    track.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') return;
+      startDrag(e.clientX);
       track.setPointerCapture(e.pointerId);
     });
     track.addEventListener('pointermove', (e) => {
-      if (!dragging) return;
-      dragX = e.clientX - startX;
-      track.style.transform = `translateX(${-index * w + dragX}px)`;
+      if (e.pointerType === 'touch') return;
+      moveDrag(e.clientX);
     });
-    track.addEventListener('pointerup', () => {
-      if (!dragging) return;
-      dragging = false;
-      if (dragX > w * 0.15) setIndex(index - 1, true);
-      else if (dragX < -w * 0.15) setIndex(index + 1, true);
-      else setIndex(index, true);
-      dragX = 0;
+    track.addEventListener('pointerup', (e) => {
+      if (e.pointerType === 'touch') return;
+      endDrag();
     });
-    track.addEventListener('pointercancel', () => {
-      if (!dragging) return;
-      dragging = false;
-      dragX = 0;
-      setIndex(index, true);
+    track.addEventListener('pointercancel', (e) => {
+      if (e.pointerType === 'touch') return;
+      cancelDrag();
     });
+
+    // タッチ: Touch Events で独立処理（iOS Safari / Android Chrome）
+    // setPointerCapture を使わないため pointercancel に影響されない
+    track.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      startDrag(e.touches[0].clientX);
+    }, { passive: true });
+    track.addEventListener('touchmove', (e) => {
+      if (e.touches.length !== 1) return;
+      moveDrag(e.touches[0].clientX);
+    }, { passive: true });
+    track.addEventListener('touchend', (e) => {
+      if (e.changedTouches.length !== 1) return;
+      endDrag();
+    }, { passive: true });
+    // iOS Safari は右スワイプを「ブラウザの戻る」候補と判断し touchcancel を発火させる。
+    // cancelDrag ではなく endDrag を呼び、閾値を超えていれば右フリックを確定させる。
+    track.addEventListener('touchcancel', () => endDrag(), { passive: true });
   }
 
   function chunkSlides(arr, size) {
