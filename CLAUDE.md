@@ -2,7 +2,28 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-06-30（ヒーローレイアウト調整・トップバー文言追加・左矢印アイコン完全削除）
+最終更新: 2026-07-01（ヒーローカルーセルのフリック根本修正・Pointer Events統一化）
+
+---
+
+## 0. ヒーローカルーセル フリック根本修正（2026-07-01）
+
+**症状:** 左フリック1回で次画像に進むが、その後左右どちらもフリックが一切効かなくなる。修正してもすぐ再発していた。
+
+**根本原因（再発の理由）:**
+1. **入力系統の二重登録** — `initHeroCarousel` に Pointer Events と Touch Events の2系統が同じ `dragging`/`dragX`/`index` 状態を共有して登録されていた。実タッチ端末では両方が発火し、`setPointerCapture` を使うポインタ経路とタッチ経路が競合。パッチを当てても別経路で壊れる構造だった。
+2. **リスナーを「動く要素」に付けていた** — リスナーが `.hero-carousel-track` に付いていたが、track は `translateX` で1ページ分左へ移動する。1回スワイプ後は track 自身のボックスが画面外へ出るため、以降のジェスチャーのイベント配送が不安定になる（＝「1回だけ動いて固まる」の正体）。
+
+**修正内容（index.html）:**
+- Touch Events を全廃し、**単一の Pointer Events 実装**で mouse/pen/touch を統一処理。
+- リスナーを**動かない `.hero-carousel-viewport`** に付け替え（`setPointerCapture` も viewport に対して実行）。
+- 1本目のポインタのみ追跡（`activeId` ガード）、横スワイプ確定後にキャプチャ、`pointerup`/`pointercancel` で確実に解放・リセット。
+- 縦横の意図を6px閾値で判定し、縦方向は縦スクロールに委ねる。
+- CSS: `touch-action: pan-y` を viewport にも付与。
+
+**検証:** Playwright（Chromium）で「左→左→右→左→右→右」を TOUCH（CDPでtouch+pointer両発火）／MOUSE（setPointerCapture経路）の両方で実行し全PASS。ローカル→本番デプロイ後も本番URLで再検証しALL PASS。
+- ⚠️ 注意: Chromiumエミュレーションでは旧コードのタッチ経路も座標が正しければPASSしてしまい、実iOS Safari特有の固まりは自動テストで完全再現できない。上記は「アーキテクチャ上の脆弱性を除去した」もので、最終確認は実機iPhoneでの手動テスト推奨。
+- ⚠️ テスト注意: Playwright の `page.mouse` はページが `setPointerCapture` を呼ぶと `mouse.up()` が stall する。マウス経路テストは CDP `Input.dispatchMouseEvent` を使うこと（scratchpad の verify.mjs 参照）。
 
 ---
 
