@@ -28,6 +28,11 @@ service cloud.firestore {
       allow create: if false;
     }
 
+    match /visitors/{docId} {
+      allow read, create, update: if true;
+      allow delete: if isAdmin();
+    }
+
     match /inquiries/{inquiryId} {
       allow read: if isAdmin();
       allow update: if isAdmin();

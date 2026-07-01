@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="apple-touch-icon" href="/icon-512.png">
+<link rel="icon" href="/icon-512.png">
 <title>100均アプリ — 自分（開発者）なら100円以上でも払うものを作りました</title>
 <style>
   :root {
@@ -34,9 +36,12 @@
     padding: 3px 14px; border-radius: 6px;
     white-space: nowrap; flex-shrink: 0;
   }
-  header nav { margin-left: auto; flex-shrink: 0; }
-  header nav a { color: #b8d9b2; font-size: 12px; text-decoration: none; white-space: nowrap; }
-  header nav a:hover { color: #fff; }
+  .visitor-count {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffe033;
+    white-space: nowrap;
+  }
 
   /* トップバー直下の小さな煽り文 */
   .sub-tagline {
@@ -93,16 +98,23 @@
   .hero-carousel {
     position: relative;
     width: clamp(240px, 84vw, 420px);
-    margin: 0 auto clamp(20px, 4vw, 36px);
+    margin: 0 auto clamp(8px, 2vw, 14px);
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
   .hero-carousel-viewport {
     overflow: hidden;
     border-radius: 26px;
+    flex: 1 1 0;
+    min-height: 0;
   }
   .hero-carousel-track {
     display: flex;
     touch-action: pan-y;
     cursor: grab;
+    height: 100%;
   }
   .hero-carousel-track:active { cursor: grabbing; }
   .hero-carousel-page {
@@ -110,11 +122,12 @@
     width: 100%;
     display: flex;
     gap: clamp(10px, 2.5vw, 18px);
+    height: 100%;
   }
   .hero-screenshot {
     flex: 1 1 0;
     min-width: 0;
-    aspect-ratio: 9/17;
+    height: 100%;
     border-radius: 26px;
     background: linear-gradient(160deg, #1a1d24, #2d3748);
     display: flex; align-items: center; justify-content: center;
@@ -123,19 +136,6 @@
     user-select: none;
     object-fit: cover;
   }
-  .hero-carousel .arrow {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,0.85);
-    border: 0.5px solid rgba(0,0,0,0.1);
-    border-radius: 50%;
-    width: 30px; height: 30px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 15px; color: var(--text);
-    transition: background 0.15s; z-index: 10;
-    user-select: none;
-  }
-  .hero-carousel .arrow:hover { background: #fff; }
-  .hero-carousel .arrow.right { right: -14px; }
   .hero-ctas {
     display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
     width: 100%; max-width: 420px;
@@ -269,7 +269,8 @@
   /* ── PC（広い画面）：ファーストビューを左右2分割でよりインパクトのある配置に ── */
   @media (min-width: 860px) {
     .hero { flex-direction: row; justify-content: center; align-items: center; gap: 64px; text-align: left; padding: 40px 40px; }
-    .hero-carousel { order: 2; margin-bottom: 0; width: clamp(320px, 30vw, 420px); }
+    .hero-carousel { order: 2; margin-bottom: 0; width: clamp(320px, 30vw, 420px); flex: 0 0 auto; }
+    .hero-screenshot { height: auto; aspect-ratio: 9/17; }
     .hero-text-block { order: 1; display: flex; flex-direction: column; align-items: flex-start; flex: 1 1 420px; max-width: 480px; }
     .hero-title .line2 { font-size: clamp(28px, 4.4vw, 46px); white-space: nowrap; }
     .hero-catchbox { align-self: flex-start; }
@@ -281,7 +282,7 @@
 
 <header>
   <h1>100均アプリ</h1>
-  <nav><a href="mailto:apps100kin@gmail.com">開発者へ問合せ</a></nav>
+  <span class="visitor-count" id="visitorCount"></span>
 </header>
 
 <p class="sub-tagline">自分（開発者）が逆の立場でも100円なら払ってもいいな！？<br>と思えるものをつくりました。</p>
@@ -301,7 +302,7 @@
 
 <script type="module">
   import { db } from "./firebase-config.js";
-  import { collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { collection, query, where, orderBy, getDocs, doc, setDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   function starString(stars) {
     const full = Math.round(stars || 0);
@@ -321,41 +322,43 @@
     let dragging = false;
     let startX = 0;
     let dragX = 0;
-    let viewportWidth = 0;
+    let w = 0; // viewport width in px (cached on pointerdown)
 
     function setIndex(i, animate) {
       index = (i + pageCount) % pageCount;
+      const px = viewport.getBoundingClientRect().width;
       track.style.transition = animate ? 'transform 0.3s ease' : 'none';
-      track.style.transform = `translateX(-${index * 100}%)`;
+      track.style.transform = `translateX(${-index * px}px)`;
     }
     setIndex(0, false);
-
-    carousel.querySelector('[data-role="heroNext"]').addEventListener('click', () => setIndex(index + 1, true));
 
     track.addEventListener('pointerdown', (e) => {
       dragging = true;
       startX = e.clientX;
       dragX = 0;
-      viewportWidth = viewport.getBoundingClientRect().width;
+      w = viewport.getBoundingClientRect().width;
       track.style.transition = 'none';
       track.setPointerCapture(e.pointerId);
     });
     track.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       dragX = e.clientX - startX;
-      track.style.transform = `translateX(calc(-${index * 100}% + ${dragX}px))`;
+      track.style.transform = `translateX(${-index * w + dragX}px)`;
     });
-    function endDrag() {
+    track.addEventListener('pointerup', () => {
       if (!dragging) return;
       dragging = false;
-      const threshold = viewportWidth * 0.15;
-      if (dragX > threshold) setIndex(index - 1, true);
-      else if (dragX < -threshold) setIndex(index + 1, true);
+      if (dragX > w * 0.15) setIndex(index - 1, true);
+      else if (dragX < -w * 0.15) setIndex(index + 1, true);
       else setIndex(index, true);
       dragX = 0;
-    }
-    track.addEventListener('pointerup', endDrag);
-    track.addEventListener('pointercancel', endDrag);
+    });
+    track.addEventListener('pointercancel', () => {
+      if (!dragging) return;
+      dragging = false;
+      dragX = 0;
+      setIndex(index, true);
+    });
   }
 
   function chunkSlides(arr, size) {
@@ -397,7 +400,6 @@
               </div>
             </div>
           </div>
-          <div class="arrow right" data-role="heroNext">&#8250;</div>
         </div>
         <div class="hero-ctas">
           <a class="hero-btn guest" href="${escapeHtml(appDoc.guestLink || detailLink)}">ゲストで試す</a>
@@ -490,6 +492,20 @@
     }
   }
 
+  async function trackVisitor() {
+    try {
+      const ref = doc(db, 'visitors', 'total');
+      await setDoc(ref, { count: increment(1) }, { merge: true });
+      const snap = await getDoc(ref);
+      const count = snap.data()?.count ?? 1;
+      const el = document.getElementById('visitorCount');
+      if (el) el.textContent = `来店者数 ${count.toLocaleString()}`;
+    } catch (e) {
+      // カウント失敗時は非表示のまま
+    }
+  }
+
+  trackVisitor();
   loadApps();
 </script>
 

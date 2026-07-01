@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="apple-touch-icon" href="/icon-512.png">
+<link rel="icon" href="/icon-512.png">
 <title>PCスマホ連動メモ — 100均アプリ</title>
 <style>
   :root {
@@ -79,6 +81,7 @@
     border-radius: 24px;
     overflow: hidden;
     box-shadow: 0 4px 24px rgba(0,0,0,0.14);
+    touch-action: pan-y;
   }
   .viewer-content {
     width: 100%; height: 100%;
@@ -86,18 +89,6 @@
     background: #000;
   }
   .viewer-content img { width: 100%; height: 100%; object-fit: cover; }
-  .arrow {
-    position: absolute; top: 32%; transform: translateY(-50%);
-    background: rgba(0,0,0,0.5);
-    border: none; border-radius: 50%;
-    width: 44px; height: 44px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; font-size: 22px; color: #fff;
-    transition: background 0.15s; z-index: 10;
-    user-select: none;
-  }
-  .arrow:hover { background: rgba(0,0,0,0.7); }
-  .arrow.right { right: 10px; }
   .slide-description {
     position: absolute;
     bottom: 16px; left: 14px; right: 14px;
@@ -210,7 +201,6 @@
 
   @media (max-width: 480px) {
     .screenshot-main { border-radius: 22px; }
-    .arrow { width: 40px; height: 40px; font-size: 20px; }
   }
 </style>
 </head>
@@ -296,7 +286,6 @@
               <div class="screenshot-main">
                 <div class="viewer-content" id="viewer"></div>
               </div>
-              <div class="arrow right" id="next">&#8250;</div>
               <div class="slide-description" id="slideLabel"></div>
             </div>
           </div>
@@ -383,7 +372,6 @@
       imgEl.alt = 'スクリーンショット';
       document.getElementById('viewer').appendChild(imgEl);
 
-      const nextBtn = document.getElementById('next');
       const labelEl = document.getElementById('slideLabel');
       let cur = 0;
 
@@ -396,26 +384,52 @@
       }
 
       goTo(0);
-      nextBtn.addEventListener('click', () => goTo(cur + 1));
 
       const screenshotEl = layout.querySelector('.screenshot-main');
-      let dragging = false, startX = 0, dragX = 0;
+      let dragging = false, startX = 0, dragX = 0, isAnimating = false;
+
       screenshotEl.addEventListener('pointerdown', e => {
+        if (isAnimating) return;
         dragging = true; startX = e.clientX; dragX = 0;
+        imgEl.style.transition = 'none';
         screenshotEl.setPointerCapture(e.pointerId);
       });
       screenshotEl.addEventListener('pointermove', e => {
-        if (dragging) dragX = e.clientX - startX;
+        if (!dragging) return;
+        dragX = e.clientX - startX;
+        imgEl.style.transform = `translateX(${dragX}px)`;
       });
-      screenshotEl.addEventListener('pointerup', () => {
+      function endSwipe() {
         if (!dragging) return;
         dragging = false;
         const w = screenshotEl.getBoundingClientRect().width;
-        if (dragX > w * 0.2) goTo(cur - 1);
-        else if (dragX < -w * 0.2) goTo(cur + 1);
+        if (Math.abs(dragX) > w * 0.2) {
+          isAnimating = true;
+          const dir = dragX > 0 ? 1 : -1;
+          imgEl.style.transition = 'transform 0.2s ease';
+          imgEl.style.transform = `translateX(${dir * w * 1.1}px)`;
+          setTimeout(() => {
+            imgEl.style.transition = 'none';
+            imgEl.style.transform = `translateX(${-dir * w * 1.1}px)`;
+            goTo(dir > 0 ? cur - 1 : cur + 1);
+            requestAnimationFrame(() => {
+              imgEl.style.transition = 'transform 0.2s ease';
+              imgEl.style.transform = '';
+              setTimeout(() => { isAnimating = false; }, 220);
+            });
+          }, 200);
+        } else {
+          imgEl.style.transition = 'transform 0.25s ease';
+          imgEl.style.transform = '';
+        }
         dragX = 0;
+      }
+      screenshotEl.addEventListener('pointerup', endSwipe);
+      screenshotEl.addEventListener('pointercancel', () => {
+        dragging = false; dragX = 0;
+        imgEl.style.transition = 'transform 0.2s ease';
+        imgEl.style.transform = '';
       });
-      screenshotEl.addEventListener('pointercancel', () => { dragging = false; dragX = 0; });
 
       // コンテンツ挿入後にスクロール位置をトップに戻す
       window.scrollTo(0, 0);
