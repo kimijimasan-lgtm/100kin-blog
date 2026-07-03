@@ -633,12 +633,16 @@
     return [];
   }
 
+  // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
+  const BUILD_TAG = 'v2026-07-04c';
+
   const FOOTER_HTML = `
     <footer>
       <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
       <br><br>
       © 2026 100均アプリ — siro
       <a class="admin-link" href="admin/login.html">管理者</a>
+      <span style="color: rgba(184,217,178,0.35); font-size: 10px; margin-left: 6px;">${BUILD_TAG}</span>
     </footer>`;
 
   function heroCarouselHtml(images, app) {
