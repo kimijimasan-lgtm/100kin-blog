@@ -41,6 +41,11 @@ app-detail.html（旧451行）の内容を index.html に統合し、1アプリ�
 1. **矢印位置**: 画面中央右/左 → 白地（煽り文）のすぐ下＝緑地（ヒーロー）の上角に移動。`#pager` を `#pagerWrap`（position: relative）で包み、`.pager-nav` を `position: absolute; top: 10px`（右=next/左=prev）に変更
 2. **最終セクション下部が見えない**: 縦スナップの吸着点が「詳細・購入」帯までしか無く、レビュー下部で指を離すと mandatory スナップが帯まで引き戻していた。**footer に `scroll-snap-align: end`（下端合わせの吸着点）を追加**し、スクロールし切った位置で静止できるようにした（スナップ構成で末尾に自由領域を置く場合の定石として記録）
 
+**同日追修正（第2ラウンド）:**
+1. **矢印位置の再調整**: タイトル文字と重なっていたため `top: 10px` → `top: -22px`（円44pxの半分が白地の煽り文エリアにかかる位置）
+2. **トップバーダブルタップ**: 「100均アプリ」バッジ（header h1）をダブルタップ（400ms以内の2クリック）で現在ページの先頭へ `scrollTo({top:0, smooth})`。h1 に `touch-action: manipulation`（ダブルタップズーム抑止）＋ `user-select: none`
+3. **詳細ビューワーの解説文が古い問題**: 原因は**Firestoreの `apps/memo-sync` に古い文言の `slides` フィールドが残っていた**こと。旧app-detail.htmlはハードコードSLIDESを表示していたのでFirestoreの古いデータが見えなかったが、統合後はFirestore優先のため表面化した。**コード（git履歴48f2c05のSLIDES＝フォールバック）は正しく、Firestore側をREST PATCH（Firebase CLIのOAuthトークン使用）で最新6枚（最適化jpgパス＋新文言）に更新して解決**。教訓: 「コードをFirestore優先に変えるときは、Firestoreに残っている旧データの中身を必ず確認する」
+
 **キャッシュのハマりポイント（重要・再発注意）:**
 - 上記2件の修正が「本番に反映されていない」との指摘があり調査した結果、**デプロイは成功していたがルートURL `/` に `Cache-Control: max-age=3600`（Firebaseデフォルト）が付いていた**ことが原因だった
 - firebase.json の headers ルール `**/*.@(html|js|css)` は**拡張子付きパス（/index.html）にしか一致せず、拡張子のないルートパス `/` には適用されない**。ユーザーは `apps100kin.web.app/`（ルート）でアクセスするため、最大1時間古いHTMLがブラウザキャッシュから表示されていた

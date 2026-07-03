@@ -42,6 +42,10 @@
     border: 2px solid #fff;
     padding: 3px 14px; border-radius: 6px;
     white-space: nowrap; flex-shrink: 0;
+    /* ダブルタップでトップへ戻る操作用（ダブルタップズームと選択を無効化） */
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
   }
   .visitor-count {
     font-size: 16px;
@@ -103,7 +107,8 @@
     display: flex; flex-direction: column;
   }
   .pager-nav {
-    position: absolute; top: 10px;
+    /* 円(44px)の半分が白地(煽り文エリア)にかかる高さ。タイトル文字との重なり回避 */
+    position: absolute; top: -22px;
     z-index: 90;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     border: none; background: none; cursor: pointer; padding: 0;
@@ -634,7 +639,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04c';
+  const BUILD_TAG = 'v2026-07-04d';
 
   const FOOTER_HTML = `
     <footer>
@@ -1033,6 +1038,20 @@
       // カウント失敗時は非表示のまま
     }
   }
+
+  // トップバーの「100均アプリ」バッジをダブルタップ（ダブルクリック）で
+  // 現在のアプリの紹介ページ先頭までスムーズにスナップスクロールして戻る
+  const logo = document.querySelector('header h1');
+  let lastLogoTap = 0;
+  logo.addEventListener('click', () => {
+    const now = Date.now();
+    if (now - lastLogoTap < 400) {
+      lastLogoTap = 0;
+      pagesRef[currentIdx]?.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      lastLogoTap = now;
+    }
+  });
 
   trackVisitor();
   loadApps();
