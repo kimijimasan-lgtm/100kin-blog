@@ -2,11 +2,76 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-07-03（Stripe購入ボタンのURLを本番用（8x24gAe62bwQaYO07teUU00）に差し替え完了。app-detail.html のカルーセル6枚（IMG_9305/IMG_9272/IMG_9273/kesseki/gold/IMG_9277）の解説文を実際の画像内容に合わせて全面差し替え・デプロイ済み）
+最終更新: 2026-07-04（2軸スナップ化: app-detail.html の内容を index.html に統合し、「縦=紹介→詳細 / 横=作品切替」の2軸スクロールスナップ構成に。詳細は「0. トップページ横ページャ化」「0-2. 2軸スナップ統合」参照）
 
 ---
 
-## 0. ヒーローカルーセル フリック根本修正（2026-07-01）
+## 0-2. 2軸スナップ統合（2026-07-04 後半）
+
+app-detail.html（旧451行）の内容を index.html に統合し、1アプリ＝「紹介（ヒーロー＋悩みごと＋CTA）→詳細（ビューワー＋購入＋レビュー）」の縦1本に。横方向の作品切替（ページャ）はそのまま。
+
+**構造:**
+```
+#pager（横 x mandatory）
+└ .app-page（縦 y mandatory ＋ overscroll-behavior-y: contain）
+   ├ .hero（1画面・snap start）
+   ├ .intro-scroll（悩みごと＋¥100 CTA を1スナップ領域に。※下記ハマり参照）
+   ├ .viewer-section（詳細1画面目・snap start）… 旧app-detailのスクショビューワー
+   ├ .section-divider＋.detail-section（購入ボックス＋レビュー）
+   └ footer
+```
+
+**主な変更:**
+- 詳細ビューワーもCSSスクロールスナップ化（**無限ループ廃止**・端で止まる／ドット追従・解説文はscroll連動で切替）。旧Pointer Events実装は全削除。これでサイト内のスワイプUIはすべてスクロールスナップに統一
+- 「もっと詳しく見ましょう→」は `<a>` → `<button>` に変更し、`viewer-section.scrollIntoView({smooth})` の縦スナップ移動に
+- Firestore取得: アプリ一覧＋**全アプリのレビューを `Promise.all` で並列取得**（アプリ数が増えたら遅延ロード化を検討）
+- スライドを `apps/{id}.slides: [{image, description}]` で管理する設計に（`topImages` と同様）。未設定時は `MEMO_SYNC_FALLBACK_SLIDES`（コード内・crossmemo用6枚）を使用
+- **URLはハッシュ方式**: `index.html#<appId>` / `#<appId>/detail`。閲覧中は `history.replaceState` で追従（近日公開ページは `#coming-soon`）。読み込み時にハッシュを解釈して横・縦位置を復元
+- **app-detail.html は転送用スタブ化**（`?app=xxx` → `index.html#xxx/detail` へ `location.replace`）。既存の共有URLは切れない。`firebase.json` の no-store ヘッダーはそのまま有効
+- `login.html` の「← 詳細に戻る」を `index.html#memo-sync/detail` に変更
+
+**縦スナップのハマりポイント（重要）:**
+- 悩みごとセクションとビューワーの間にある「¥100＋CTAボタン」が、当初スナップ吸着点の狭間にあり**スクロール停止位置として安定しなかった**（mandatoryが手前/奥の吸着点へ引っ張る）
+- 解決: 悩みごと＋CTAを `.intro-scroll` という1つのスナップ領域（snap-align: start）で包む。**スナップ領域が1画面より大きい場合、領域内は自由スクロールになり、領域の上端・下端が吸着点になる**（CSS仕様）。下端＝CTAが全部見える位置なので自然に止まれる
+- 縦スナップが実機で硬すぎる場合は `.app-page` の `scroll-snap-type: y mandatory` → `y proximity` に1語変更すればよい
+
+**検証:** Playwright 20項目ALL PASS（初期表示／横往復とハッシュ追従／縦スナップ吸着／CTA静止安定性／スライド切替＋解説文連動／ハッシュ直リンク着地／旧URLリダイレクト／デスクトップ表示）。ローカル・本番両方で確認済み。実機iPhoneでのスナップ感触の確認は未実施（推奨）。
+
+---
+
+## 0. トップページ横ページャ化（2026-07-04 前半）
+
+index.html を「アプリ1つ＝横1ページ」のページャ構成に全面改修。
+
+**新アーキテクチャ:**
+- `<main id="pager">` が横スクロールコンテナ（`scroll-snap-type: x mandatory`）。各 `.app-page` が1アプリ分（ヒーロー＋開発の動機＋¥100 CTA＋footer）で、ページ内は縦スクロール（`overflow-y: auto`）
+- body は `height: 100dvh; overflow: hidden` の固定ビューポート化。footer は各ページの縦スクロール末尾に移設（`FOOTER_HTML` テンプレート）
+- **ジェスチャー処理はCSSスクロールスナップに全面委譲**。旧 `initHeroCarousel` の Pointer Events 実装（約90行）は全削除。縦横の軸判定・慣性・スナップはブラウザネイティブ。JSが持つのは「矢印クリックで `scrollTo`」「IntersectionObserver（threshold 0.6, root=pager）での現在ページ検出」「カルーセルのドット追従」のみ
+- 固定矢印: `#nextBtn`（右端「次の作品」）/ `#prevBtn`（左端「前の作品」）。1ページ目では prev 非表示、最終ページでは next 非表示
+- 最終ページに「近日公開」（`.coming-soon`）プレースホルダーページを自動追加（`○作目を制作中です`）
+- ヒーロー内スクショカルーセルも同方式に統一（`overscroll-behavior-x: contain` で外側ページ送りへの連鎖を遮断）。ドットインジケーター付き
+- `renderMoreApps`（「他のアプリ」縦カード一覧）は廃止。旧 `fitHero()`（ヒーロー高さJS計算）も廃止し `.hero { height: 100% }` に置き換え
+- `scrollend` イベントはiOS Safari未対応のため不使用（IntersectionObserverで代替）
+
+**topImages（トップ用スクショのFirestore管理化）:**
+- 各アプリの `apps/{id}` ドキュメントに `topImages: [画像パス, ...]` 配列を持たせる設計に変更（2枚ずつカルーセルページに分割表示）
+- **未設定時のフォールバック**: `memo-sync` のみコード内の `MEMO_SYNC_FALLBACK_IMAGES`（IMG_9266/9267/9268/9271）を使用。それ以外のアプリは `icon` 絵文字のプレースホルダー表示
+- ⚠️ 残作業: Firebase Console で `apps/memo-sync` に `topImages` を登録すればフォールバックは不要になる。2作目以降は登録必須。`開発者ガイド.md` への手順追記も未実施
+
+**来店者数カウンターの重複カウント修正:**
+- `trackVisitor()` に sessionStorage ガード（キー `visitCounted`）を追加。同一タブ内のリロード・トップ⇔詳細往復では加算されず、1セッション1カウントになった
+
+**デスクトップレイアウトのハマりポイント:**
+- PC（860px以上）の横並びヒーローでは、カルーセルの高さが親から与えられず `flex: 1 1 0` が0に潰れる（さらに flex の `align-items: stretch` が画像の `aspect-ratio` 由来の高さを打ち消す）。メディアクエリ内で `.hero-carousel-viewport { flex: 0 0 auto }` ＋ track/page `height: auto` にして画像のアスペクト比から高さを導出して解決
+
+**検証:** Playwright（Chromium）でモバイル390×844/デスクトップ1280×800の表示、矢印での往復、ドット、リロード時のカウント非加算をローカル・本番URL両方で確認済み。実機iPhoneでのスワイプ感触の確認は未実施（推奨）。
+- ⚠️ 既知の制約: iOS Safariの画面左端エッジスワイプ（ブラウザバック）はシステムジェスチャーのため奪えない。矢印ボタンで代替可能
+
+---
+
+## 0-旧. ヒーローカルーセル フリック根本修正（2026-07-01）※歴史的記録
+
+> **注:** ここで実装した Pointer Events 方式は 2026-07-04 の横ページャ化で全削除され、CSSスクロールスナップ方式に置き換えられた（上記0章参照）。以下は「JS自作スワイプは二重登録・動く要素へのリスナーで壊れる」という教訓の記録として残す。
 
 **症状:** 左フリック1回で次画像に進むが、その後左右どちらもフリックが一切効かなくなる。修正してもすぐ再発していた。
 
@@ -41,8 +106,8 @@
 ├── CLAUDE.md           ← 本ファイル
 ├── 設計書.md            ← 実装計画書（原本）
 ├── 開発者ガイド.md       ← 次作アプリ登録手順
-├── index.html           ← ホーム画面（実装済み・本番）
-├── app-detail.html      ← アプリ詳細ページ（実装済み・本番）
+├── index.html           ← ホーム画面＋詳細ページ統合（2軸スナップ・本番）
+├── app-detail.html      ← 転送用スタブ（?app=xxx → index.html#xxx/detail へリダイレクト）
 ├── login.html           ← ゲスト／購入ログイン選択（実装済み・本番）
 ├── save.bat             ← git add/commit/push を自動実行するスクリプト
 ├── admin/

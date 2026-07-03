@@ -19,8 +19,15 @@
     --radius: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif; padding-top: 52px; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+    padding-top: 52px;
+    height: 100vh;   /* dvh非対応ブラウザ用フォールバック */
+    height: 100dvh;
+    overflow: hidden;               /* 縦スクロールは各ページ内部で行う */
+    display: flex; flex-direction: column;
+  }
 
   /* Header */
   header {
@@ -52,12 +59,72 @@
     color: var(--muted);
     padding: 8px 16px 8px 28px;
     background: var(--bg);
+    flex: 0 0 auto;
   }
+
+  /* ── 横ページャ（アプリ1つ=1ページ、CSSスクロールスナップ） ──
+     ジェスチャー処理はブラウザネイティブに全面委譲する。
+     縦横の軸判定・慣性・スナップはブラウザ標準動作（JSでのポインタ処理は行わない）。 */
+  #pager {
+    flex: 1 1 0; min-height: 0;
+    display: flex;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;   /* 端での履歴戻りジェスチャー等への連鎖を抑止 */
+    scrollbar-width: none;
+  }
+  #pager::-webkit-scrollbar { display: none; }
+  /* 各アプリページ＝縦スナップコンテナ（紹介→詳細を縦1本でつなぐ） */
+  .app-page {
+    flex: 0 0 100%; width: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;         /* 強いフリックでの複数ページ飛ばしを防ぐ */
+    overflow-y: auto; overflow-x: hidden;
+    scroll-snap-type: y mandatory;    /* 硬すぎる場合は proximity に変更する */
+    overscroll-behavior-y: contain;   /* ページ端でのpull-to-refresh等への連鎖を抑止 */
+    display: flex; flex-direction: column;
+  }
+  .app-page > * { flex-shrink: 0; }
+  .app-page footer { margin-top: auto; }
+  /* 縦スナップの吸着点（1画面ぴったりのセクション＋各セクション先頭）。
+     紹介部分（悩みごと＋CTA）は .intro-scroll で1つのスナップ領域にまとめる：
+     領域が1画面より大きい場合、領域内は自由スクロールでき、上端と下端
+     （＝CTAが全部見える位置）が吸着点になる。 */
+  .hero, .intro-scroll, .viewer-section, .section-divider { scroll-snap-align: start; }
+
+  /* ── 前後ページ移動の固定矢印 ── */
+  .pager-nav {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    z-index: 90;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border: none; background: none; cursor: pointer; padding: 0;
+    font-family: inherit;
+    transition: opacity 0.25s;
+  }
+  .pager-nav.hidden { opacity: 0; pointer-events: none; }
+  .pager-nav .circle {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(45, 90, 39, 0.92); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; line-height: 1;
+    padding-bottom: 3px;
+    border: 2px solid rgba(255,255,255,0.85);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  }
+  .pager-nav .nav-label {
+    font-size: 10px; font-weight: 700; color: var(--primary);
+    background: rgba(247,246,242,0.92);
+    padding: 2px 6px; border-radius: 6px;
+    white-space: nowrap;
+  }
+  #nextBtn { right: 6px; }
+  #prevBtn { left: 6px; }
 
   /* ── ファーストビュー（雑誌の表紙のようなインパクト） ── */
   .hero {
     background: radial-gradient(circle at 50% 0%, #3d7536, var(--primary) 55%, var(--primary-dark));
     color: #fff;
+    height: 100%;                     /* ページ（表示領域）ちょうどに収める */
     display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     text-align: center;
     padding: 28px 20px 60px;
@@ -94,7 +161,7 @@
     color: #fff;
     margin-bottom: clamp(10px, 2vw, 16px);
   }
-  /* スクリーンショット：2枚同時表示・2枚ずつページ送りのスワイプ／ドラッグ対応カルーセル */
+  /* スクリーンショット：2枚同時表示・2枚ずつページ送り（CSSスクロールスナップ） */
   .hero-carousel {
     position: relative;
     width: clamp(240px, 84vw, 420px);
@@ -105,22 +172,24 @@
     flex-direction: column;
   }
   .hero-carousel-viewport {
-    overflow: hidden;
+    overflow-x: auto; overflow-y: hidden;
     border-radius: 26px;
     flex: 1 1 0;
     min-height: 0;
-    touch-action: pan-y;   /* 横スワイプはJSへ、縦は通常スクロール（ポインタ処理は viewport） */
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;   /* カルーセル端でのスワイプが外側のページ送りへ連鎖しないようにする */
+    scrollbar-width: none;
   }
+  .hero-carousel-viewport::-webkit-scrollbar { display: none; }
   .hero-carousel-track {
     display: flex;
-    touch-action: pan-y;
-    cursor: grab;
     height: 100%;
   }
-  .hero-carousel-track:active { cursor: grabbing; }
   .hero-carousel-page {
     flex: 0 0 100%;
     width: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
     display: flex;
     gap: clamp(10px, 2.5vw, 18px);
     height: 100%;
@@ -137,6 +206,26 @@
     user-select: none;
     object-fit: cover;
   }
+  /* topImages未設定アプリ用のプレースホルダー */
+  .hero-noimage {
+    flex: 1 1 0; min-height: 0;
+    border-radius: 26px;
+    background: linear-gradient(160deg, #1a1d24, #2d3748);
+    display: flex; align-items: center; justify-content: center;
+    font-size: clamp(36px, 9vw, 64px);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.35), 0 0 0 6px rgba(255,255,255,0.08);
+  }
+  .hero-dots {
+    display: flex; justify-content: center; gap: 8px;
+    margin-top: 10px;
+    flex: 0 0 auto;
+  }
+  .hero-dots .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    border: none; padding: 0; cursor: pointer;
+  }
+  .hero-dots .dot.active { background: #fff; }
   .hero-ctas {
     display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
     width: 100%; max-width: 420px;
@@ -173,6 +262,7 @@
   .features-section {
     max-width: 760px;
     margin: 0 auto;
+    width: 100%;
     padding: clamp(56px, 10vw, 110px) 20px clamp(20px, 4vw, 32px);
   }
   .features-section .section-label {
@@ -224,7 +314,7 @@
     box-shadow: 0 4px 18px rgba(45, 90, 39, 0.10);
   }
 
-  /* ── 詳細・購入リンクCTA ── */
+  /* ── 詳細への誘導CTA ── */
   .detail-cta {
     text-align: center;
     margin-top: clamp(20px, 4vw, 34px);
@@ -239,39 +329,191 @@
     background: var(--primary); color: #fff;
     padding: 16px 40px; border-radius: 10px;
     font-size: 15px; font-weight: 700; text-decoration: none;
+    border: none; cursor: pointer; font-family: inherit;
   }
   .detail-cta .cta-btn:hover { background: #234a1f; }
 
-  /* ── 2作目以降（追加アプリ） ── */
-  .more-apps {
-    max-width: 1100px; margin: 0 auto; padding: 0 24px;
+  /* ─── スクリーンショットビューワー（旧app-detail.htmlより統合） ─── */
+  .viewer-section {
+    height: 100%;                     /* 詳細の1画面目としてページぴったりに収める */
+    background: #16280f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 24px 0;
+    overflow: hidden;
   }
-  .more-apps:not(:empty) { padding-bottom: 48px; }
-  .more-apps .section-label {
-    font-size: 11px; font-weight: 700; color: var(--primary);
-    letter-spacing: 0.12em; margin-bottom: 16px;
+  .viewer-area {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 92%;
+    max-width: 400px;
   }
-  .more-app-card {
-    display: flex; align-items: center; gap: 14px;
+  .viewer-wrap {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  /* スワイプはCSSスクロールスナップに委譲（端で止まる。無限ループは廃止） */
+  .screenshot-main {
+    width: 100%;
+    max-height: 100%;
+    aspect-ratio: 9/19.5;
+    border-radius: 24px;
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.14);
+  }
+  .screenshot-main::-webkit-scrollbar { display: none; }
+  .viewer-track { display: flex; height: 100%; }
+  .viewer-slide {
+    flex: 0 0 100%;
+    width: 100%; height: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    background: #000;
+  }
+  .viewer-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slide-description {
+    position: absolute;
+    bottom: 16px; left: 14px; right: 14px;
+    max-height: 30%; overflow-y: auto;
+    background: #1e40af;
+    border: 3px solid #ffffff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-size: 15px; font-weight: 900; line-height: 1.65;
+    color: #FFFF00;
+    z-index: 5;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  }
+  .viewer-dots {
+    flex: 0 0 auto;
+    display: flex; justify-content: center; gap: 8px;
+    padding-top: 10px;
+  }
+  .viewer-dots .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    border: none; padding: 0; cursor: pointer;
+  }
+  .viewer-dots .dot.active { background: #fff; }
+  .viewer-scroll-hint {
+    flex-shrink: 0;
+    padding: 10px 0 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: rgba(255,255,255,0.7); font-size: 11px;
+    animation: bounceY 2s ease-in-out infinite;
+  }
+  .viewer-scroll-hint svg { width: 16px; height: 16px; }
+  @keyframes bounceY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+
+  /* ─── 詳細・購入セクション（旧app-detail.htmlより統合） ─── */
+  .detail-section {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 28px 24px 60px;
+  }
+  .section-divider {
+    background: var(--primary); color: #fff;
+    text-align: center; padding: 10px 24px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.12em;
+  }
+  .app-name { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .app-catch { font-size: 14px; color: var(--muted); margin-bottom: 10px; }
+  .stars-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+  .stars { color: var(--accent); font-size: 16px; }
+  .review-link { font-size: 13px; color: var(--primary); cursor: pointer; }
+
+  .purchase-box {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px; margin-bottom: 32px;
+  }
+  .price { font-size: 28px; font-weight: 700; margin-bottom: 16px; line-height: 1.3; }
+  .price span { font-size: 13px; color: var(--muted); font-weight: 400; display: block; margin-top: 2px; }
+  .btn {
+    display: block; width: 100%; padding: 13px;
+    border-radius: 8px; font-size: 15px; font-weight: 700;
+    text-align: center; cursor: pointer; border: none;
+    margin-bottom: 10px; text-decoration: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #c98910; }
+  .btn-secondary { background: var(--bg); color: var(--text); border: 0.5px solid var(--border); font-size: 14px; }
+  .btn-secondary:hover { background: var(--border); }
+  .contact-link { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
+  .contact-link a { color: var(--primary); cursor: pointer; }
+
+  /* レビュー */
+  .section-title-row {
+    display: flex; align-items: baseline; gap: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--primary);
+    margin-bottom: 16px;
+  }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--primary); letter-spacing: 0.1em; flex: 1; }
+  .review-summary { font-size: 13px; color: var(--accent); font-weight: 700; white-space: nowrap; }
+  .view-all-btn {
+    display: block; width: 100%; padding: 11px;
+    border-radius: 8px; font-size: 14px; font-weight: 700;
+    text-align: center; cursor: pointer;
+    border: 1.5px solid var(--primary);
+    background: transparent; color: var(--primary);
+    text-decoration: none; margin-top: 12px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .view-all-btn:hover { background: var(--primary); color: #fff; }
+  .review-card {
     background: var(--surface); border: 0.5px solid var(--border);
-    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
-    text-decoration: none; color: var(--text);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
   }
-  .more-app-card .icon {
-    width: 44px; height: 44px; border-radius: 10px;
-    background: #c8dfc4; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center; font-size: 22px;
+  .review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
   }
-  .more-app-card .name { font-size: 15px; font-weight: 700; }
-  .more-app-card .stars { color: var(--accent); font-size: 12px; }
+  .reviewer { font-size: 13px; font-weight: 700; }
+  .review-meta { font-size: 11px; color: var(--muted); }
+  .review-stars { color: var(--accent); font-size: 13px; }
+  .review-text { font-size: 13px; line-height: 1.7; margin-top: 6px; }
 
-  .placeholder-note {
-    margin-top: 16px; padding: 32px 24px;
-    border: 2px dashed var(--border); border-radius: var(--radius);
-    text-align: center; color: var(--muted); font-size: 13px;
+  /* ── 「近日公開」プレースホルダーページ ── */
+  .coming-soon-body {
+    flex: 1 1 auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
+  }
+  .coming-soon-box {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 56px 40px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.9;
+  }
+  .coming-soon-box .big {
+    font-size: 28px; font-weight: 900; color: var(--primary);
+    margin-bottom: 12px;
   }
 
-  /* Footer */
+  /* Footer（各ページの縦スクロール末尾に配置） */
   footer {
     background: var(--primary); color: #b8d9b2;
     text-align: center; padding: 20px; font-size: 12px;
@@ -285,11 +527,19 @@
   }
   footer .admin-link:hover { color: rgba(184,217,178,0.7); }
 
+  @media (max-width: 480px) {
+    .screenshot-main { border-radius: 22px; }
+  }
+
   /* ── PC（広い画面）：ファーストビューを左右2分割でよりインパクトのある配置に ── */
   @media (min-width: 860px) {
     .hero { flex-direction: row; justify-content: center; align-items: center; gap: 64px; text-align: left; padding: 40px 40px; }
     .hero-carousel { order: 2; margin-bottom: 0; width: clamp(320px, 30vw, 420px); flex: 0 0 auto; }
+    /* 横並びレイアウトでは親から高さが来ないため、画像のアスペクト比で高さを決める */
+    .hero-carousel-viewport { flex: 0 0 auto; }
+    .hero-carousel-track, .hero-carousel-page { height: auto; }
     .hero-screenshot { height: auto; aspect-ratio: 9/17; }
+    .hero-noimage { flex: 0 0 auto; aspect-ratio: 9/17; }
     .hero-text-block { order: 1; display: flex; flex-direction: column; align-items: flex-start; flex: 1 1 420px; max-width: 480px; }
     .hero-title .line2 { font-size: clamp(28px, 4.4vw, 46px); white-space: nowrap; }
     .hero-catchbox { align-self: flex-start; }
@@ -306,122 +556,34 @@
 
 <p class="sub-tagline">自分（開発者）が逆の立場でも100円なら払ってもいいな！？<br>と思えるものをつくりました。</p>
 
-<div id="appRoot">
-  <section class="hero">
-    <p style="opacity:0.7; font-size:13px;">読み込み中...</p>
+<main id="pager">
+  <section class="app-page">
+    <p style="opacity:0.7; font-size:13px; text-align:center; padding:80px 20px;">読み込み中...</p>
   </section>
-</div>
+</main>
 
-<footer>
-  <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
-  <br><br>
-  © 2026 100均アプリ — siro
-  <a class="admin-link" href="admin/login.html">管理者</a>
-</footer>
+<button id="prevBtn" class="pager-nav hidden" type="button" aria-label="前の作品へ">
+  <span class="circle">&#8249;</span>
+  <span class="nav-label">前の作品</span>
+</button>
+<button id="nextBtn" class="pager-nav hidden" type="button" aria-label="次の作品へ">
+  <span class="circle">&#8250;</span>
+  <span class="nav-label">次の作品</span>
+</button>
 
 <script type="module">
   import { db } from "./firebase-config.js";
   import { collection, query, where, orderBy, getDocs, doc, setDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  function starString(stars) {
-    const full = Math.round(stars || 0);
-    return '★'.repeat(full) + '☆'.repeat(5 - full);
-  }
+  const pager = document.getElementById('pager');
 
   function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function initHeroCarousel(root, pageCount) {
-    const carousel = root.querySelector('.hero-carousel');
-    if (!carousel || pageCount <= 0) return;
-    const viewport = carousel.querySelector('.hero-carousel-viewport');
-    const track = carousel.querySelector('.hero-carousel-track');
-
-    // 単一の Pointer Events 実装で mouse / pen / touch を統一処理する。
-    // - リスナーは動かない viewport に付ける（track は translateX で画面外へ動くため、
-    //   track に付けると1回スワイプした後にイベントが届かなくなる＝旧バグの原因）。
-    // - Touch Events との二重登録を廃止（共有状態の競合が「修正しても再発する」原因だった）。
-    let index = 0;
-    let dragging = false;      // ポインタが押されている最中か
-    let horizontal = false;    // このジェスチャーを横スワイプとして確定したか
-    let activeId = null;       // 追跡中のポインタID（1本目のみ扱う）
-    let startX = 0, startY = 0;
-    let dragX = 0;
-    let w = 0;
-
-    function width() { return viewport.getBoundingClientRect().width; }
-
-    function goTo(i, animate) {
-      index = Math.max(0, Math.min(i, pageCount - 1));
-      track.style.transition = animate ? 'transform 0.3s ease' : 'none';
-      track.style.transform = `translateX(${-index * width()}px)`;
-    }
-    goTo(0, false);
-
-    function reset() {
-      dragging = false;
-      horizontal = false;
-      activeId = null;
-      dragX = 0;
-    }
-
-    viewport.addEventListener('pointerdown', (e) => {
-      if (activeId !== null) return;          // 2本目以降のポインタは無視
-      if (e.button > 0) return;                // マウスは左ボタンのみ
-      activeId = e.pointerId;
-      dragging = true;
-      horizontal = false;
-      startX = e.clientX;
-      startY = e.clientY;
-      dragX = 0;
-      w = width();
-      track.style.transition = 'none';
-    });
-
-    viewport.addEventListener('pointermove', (e) => {
-      if (!dragging || e.pointerId !== activeId) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      if (!horizontal) {
-        // 微小移動では方向を確定しない（タップの誤検出防止）
-        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-        if (Math.abs(dy) > Math.abs(dx)) {
-          // 縦方向の意図 → 縦スクロールに委ね、このジェスチャーは破棄
-          goTo(index, true);
-          reset();
-          return;
-        }
-        horizontal = true;
-        // 横スワイプ確定後にポインタを捕捉（viewport は動かないので安全）
-        try { viewport.setPointerCapture(activeId); } catch (_) {}
-      }
-      dragX = dx;
-      // 端でのラバーバンド（30% に減衰）
-      let d = dragX;
-      if (index === 0 && d > 0) d *= 0.3;
-      if (index === pageCount - 1 && d < 0) d *= 0.3;
-      track.style.transform = `translateX(${-index * w + d}px)`;
-    });
-
-    function finish(e) {
-      if (!dragging || e.pointerId !== activeId) return;
-      try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
-      if (horizontal) {
-        if (dragX > w * 0.15 && index > 0) goTo(index - 1, true);
-        else if (dragX < -w * 0.15 && index < pageCount - 1) goTo(index + 1, true);
-        else goTo(index, true);
-      } else {
-        goTo(index, true);
-      }
-      reset();
-    }
-
-    viewport.addEventListener('pointerup', finish);
-    viewport.addEventListener('pointercancel', finish);
-
-    // リサイズ時は現在ページのオフセットを再計算（アニメ無し）
-    window.addEventListener('resize', () => goTo(index, false), { passive: true });
+  function starString(stars) {
+    const full = Math.round(stars || 0);
+    return '★'.repeat(full) + '☆'.repeat(5 - full);
   }
 
   function chunkSlides(arr, size) {
@@ -430,43 +592,151 @@
     return out;
   }
 
-  // トップページ用静的スクリーンショット（4枚）
-  const TOP_PAGE_IMAGES = [
+  // ── Firestore未設定時のcrossmemo（memo-sync）用フォールバック ──
+  // apps/{id}.topImages（トップの2枚組カルーセル）
+  const MEMO_SYNC_FALLBACK_IMAGES = [
     'images/IMG_9266.PNG',
     'images/IMG_9267.PNG',
     'images/IMG_9268.PNG',
     'images/IMG_9271.PNG'
   ];
+  // apps/{id}.slides（詳細ビューワーの画像＋解説文）
+  const MEMO_SYNC_FALLBACK_SLIDES = [
+    { image: 'images/slides/img_9305.jpg', description: '同じURLで同期しているので、片方(PCでもスマホでも)があってもなくても、使いたいときに両方(遅延なく)使えるのが強み。' },
+    { image: 'images/slides/img_9272.jpg', description: '朝、起きたら昨夜視聴したYouTube動画をNotebookLMでデータ化して、このアプリでデコレーションするのが私(開発者)の使い方です。' },
+    { image: 'images/slides/img_9273.jpg', description: 'スマホAIで調べた内容を気軽に貼り付けられるのも利点です。このアプリのおかげでナノバナナの明確な使い方を決められました。' },
+    { image: 'images/slides/kesseki.jpg', description: 'スマホAIで調べた内容にグーグル画像検索で画像を貼り付けた例です。PC側でスクショしてスマホでデコレーションというコラボです。' },
+    { image: 'images/slides/gold.jpg', description: 'NotebookLMでの【スタジオ】のコンテンツを組み合わせた方が分かりやすいカードができます。スライド資料も1枚の挿絵となるので理解を深めます。' },
+    { image: 'images/slides/img_9277.jpg', description: 'YouTube動画のリンクも貼り付けられ、カード内で再生もできます。意外と秀逸なコンテンツでも「あれ？あの動画はどこに？」と整理できない開発者の私。パネルで整理整頓もいい方法。' },
+  ];
 
-  function renderHero(appDoc) {
-    const detailLink = `app-detail.html?app=${encodeURIComponent(appDoc.id)}`;
-    const catchText = (appDoc.catchWords || []).join('');
-    const features = appDoc.features || [];
+  function topImagesFor(app) {
+    if (Array.isArray(app.topImages) && app.topImages.length) return app.topImages;
+    if (app.id === 'memo-sync') return MEMO_SYNC_FALLBACK_IMAGES;
+    return [];
+  }
 
-    const root = document.getElementById('appRoot');
-    root.innerHTML = `
-      <section class="hero">
-        <div class="hero-text-block">
-          <p class="hero-title"><span class="line1">1作目</span><span class="line2">${escapeHtml(appDoc.name || '')}</span></p>
-          ${catchText ? `<p class="hero-catchbox">${escapeHtml(catchText)}</p>` : ''}
-        </div>
+  function slidesFor(app) {
+    if (Array.isArray(app.slides) && app.slides.length) return app.slides;
+    if (app.id === 'memo-sync') return MEMO_SYNC_FALLBACK_SLIDES;
+    return [];
+  }
+
+  const FOOTER_HTML = `
+    <footer>
+      <a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
+      <br><br>
+      © 2026 100均アプリ — siro
+      <a class="admin-link" href="admin/login.html">管理者</a>
+    </footer>`;
+
+  function heroCarouselHtml(images, app) {
+    if (!images.length) {
+      return `
         <div class="hero-carousel">
-          <div class="hero-carousel-viewport">
-            <div class="hero-carousel-track">
+          <div class="hero-noimage">${escapeHtml(app.icon || '📦')}</div>
+        </div>`;
+    }
+    const pages = chunkSlides(images, 2);
+    return `
+      <div class="hero-carousel">
+        <div class="hero-carousel-viewport">
+          <div class="hero-carousel-track">
+            ${pages.map(pair => `
               <div class="hero-carousel-page">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[0]}" alt="スクリーンショット1">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[1]}" alt="スクリーンショット2">
-              </div>
-              <div class="hero-carousel-page">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[2]}" alt="スクリーンショット3">
-                <img class="hero-screenshot" src="${TOP_PAGE_IMAGES[3]}" alt="スクリーンショット4">
-              </div>
-            </div>
+                ${pair.map(src => `<img class="hero-screenshot" src="${escapeHtml(src)}" alt="スクリーンショット">`).join('')}
+              </div>`).join('')}
           </div>
         </div>
+        ${pages.length > 1 ? `
+          <div class="hero-dots">
+            ${pages.map((_, j) => `<button class="dot${j === 0 ? ' active' : ''}" type="button" data-dot="${j}" aria-label="スクリーンショット${j + 1}ページ目"></button>`).join('')}
+          </div>` : ''}
+      </div>`;
+  }
+
+  function viewerSectionHtml(slides) {
+    if (!slides.length) return '';
+    return `
+      <section class="viewer-section">
+        <div class="viewer-area">
+          <div class="viewer-wrap">
+            <div class="screenshot-main">
+              <div class="viewer-track">
+                ${slides.map((s, j) => `
+                  <div class="viewer-slide"><img src="${escapeHtml(s.image)}" alt="スクリーンショット${j + 1}"${j === 0 ? '' : ' loading="lazy"'}></div>`).join('')}
+              </div>
+            </div>
+            <div class="slide-description">${escapeHtml(slides[0].description || '')}</div>
+          </div>
+          ${slides.length > 1 ? `
+            <div class="viewer-dots">
+              ${slides.map((_, j) => `<button class="dot${j === 0 ? ' active' : ''}" type="button" data-dot="${j}" aria-label="スクリーンショット${j + 1}枚目"></button>`).join('')}
+            </div>` : ''}
+          <div class="viewer-scroll-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            <span>詳細・購入へ</span>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  function detailSectionsHtml(app, reviews, slides) {
+    const avg = reviews.length
+      ? (reviews.reduce((s, r) => s + (r.stars || 0), 0) / reviews.length).toFixed(1)
+      : null;
+    return `
+      ${viewerSectionHtml(slides)}
+      <div class="section-divider">詳 細 ・ 購 入</div>
+      <section class="detail-section">
+        <p class="app-name">${escapeHtml(app.name || '')}</p>
+        <p class="app-catch">${escapeHtml((app.catchWords || []).join(''))}</p>
+        <div class="stars-row">
+          <span class="stars">${starString(app.stars)}</span>
+          <span class="review-link">${reviews.length}件のレビュー</span>
+        </div>
+        <div class="purchase-box">
+          <p class="price">¥${escapeHtml(app.price ?? '')}<br><span>（買い切り）</span></p>
+          <a class="btn btn-primary" href="${escapeHtml(app.stripeLink || 'javascript:void(0)')}" target="_blank">購入してログイン</a>
+          <a class="btn btn-secondary" href="${escapeHtml(app.guestLink || 'javascript:void(0)')}">ゲストで試してみる</a>
+          <div class="contact-link">
+            <a class="review-post-link">アプリのレビューを投稿する ↓</a>
+          </div>
+        </div>
+        <div class="reviews-block">
+          <div class="section-title-row">
+            <span class="section-title">カスタマーレビュー</span>
+            ${avg ? `<span class="review-summary">★${avg} / ${reviews.length}件</span>` : ''}
+          </div>
+          <div class="review-list"></div>
+          ${reviews.length > 3 ? '<a class="view-all-btn">すべてのレビューを見る →</a>' : ''}
+        </div>
+      </section>
+      ${reviews.length > 3 ? `
+        <div class="section-divider">全 て の レ ビ ュ ー</div>
+        <section class="detail-section all-reviews">
+          <div class="section-title-row">
+            <span class="section-title">すべてのレビュー</span>
+            <span class="review-summary">${reviews.length}件</span>
+          </div>
+          <div class="all-review-list"></div>
+        </section>` : ''}
+    `;
+  }
+
+  function appPageHtml(app, reviews, slides, i) {
+    const catchText = (app.catchWords || []).join('');
+    const features = app.features || [];
+    return `
+      <section class="hero">
+        <div class="hero-text-block">
+          <p class="hero-title"><span class="line1">${i + 1}作目</span><span class="line2">${escapeHtml(app.name || '')}</span></p>
+          ${catchText ? `<p class="hero-catchbox">${escapeHtml(catchText)}</p>` : ''}
+        </div>
+        ${heroCarouselHtml(topImagesFor(app), app)}
         <div class="hero-ctas">
-          <a class="hero-btn guest" href="${escapeHtml(appDoc.guestLink || detailLink)}">ゲストで試す</a>
-          <a class="hero-btn purchase" href="${escapeHtml(appDoc.stripeLink || detailLink)}" target="_blank">購入する</a>
+          <a class="hero-btn guest" href="${escapeHtml(app.guestLink || 'javascript:void(0)')}">ゲストで試す</a>
+          <a class="hero-btn purchase" href="${escapeHtml(app.stripeLink || 'javascript:void(0)')}" target="_blank">購入する</a>
         </div>
         <a class="scroll-hint" href="javascript:void(0)">
           <span>特徴を見る</span>
@@ -474,69 +744,235 @@
         </a>
       </section>
 
-      <section class="features-section" id="features">
-        <div class="section-label-wrap"><p class="section-label">開発の動機</p></div>
-        ${features.map((f, i) => `
-          <div class="feature-item">
-            <div class="mark">${i + 1}</div>
-            <p class="feature-text">${escapeHtml(f)}</p>
-          </div>
-        `).join('')}
-        <div class="sync-note">PCからも、スマホからも、同じURLを読みに行けるので常に同じ画面が見えます。</div>
-      </section>
+      <div class="intro-scroll">
+        <section class="features-section">
+          <div class="section-label-wrap"><p class="section-label">開発の動機</p></div>
+          ${features.map((f, j) => `
+            <div class="feature-item">
+              <div class="mark">${j + 1}</div>
+              <p class="feature-text">${escapeHtml(f)}</p>
+            </div>
+          `).join('')}
+          <div class="sync-note">PCからも、スマホからも、同じURLを読みに行けるので常に同じ画面が見えます。</div>
+        </section>
 
-      <section class="detail-cta">
-        <p class="price-line">¥${escapeHtml(appDoc.price ?? '')} <span>${escapeHtml(appDoc.priceNote || '')}</span></p>
-        <a class="cta-btn" href="${detailLink}">もっと詳しく見ましょう →</a>
-      </section>
-
-      <section class="more-apps" id="moreApps"></section>
+        <section class="detail-cta">
+          <p class="price-line">¥${escapeHtml(app.price ?? '')} <span>${escapeHtml(app.priceNote || '')}</span></p>
+          <button class="cta-btn detail-jump" type="button">もっと詳しく見ましょう →</button>
+        </section>
+      </div>
+      ${detailSectionsHtml(app, reviews, slides)}
+      ${FOOTER_HTML}
     `;
-
-    const items = root.querySelectorAll('.feature-item');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) entry.target.classList.add('visible');
-      });
-    }, { threshold: 0.3 });
-    items.forEach(item => observer.observe(item));
-
-    root.querySelector('.scroll-hint').addEventListener('click', e => {
-      e.preventDefault();
-      document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
-    });
-
-    initHeroCarousel(root, 2); // 静的画像4枚を2ページで表示
-
-    const heroEl = root.querySelector('.hero');
-    const fitHero = () => {
-      const subTagH = document.querySelector('.sub-tagline')?.offsetHeight ?? 0;
-      heroEl.style.height = `calc(100dvh - 52px - ${subTagH}px)`;
-    };
-    fitHero();
-    window.addEventListener('resize', fitHero, { passive: true });
   }
 
-  function renderMoreApps(apps) {
-    if (!apps.length) return;
-    const section = document.getElementById('moreApps');
-    section.innerHTML = `
-      <p class="section-label">他のアプリ</p>
-      ${apps.map(app => `
-        <a class="more-app-card" href="app-detail.html?app=${encodeURIComponent(app.id)}">
-          <div class="icon">${escapeHtml(app.icon || '📦')}</div>
-          <div>
-            <p class="name">${escapeHtml(app.name || '')}</p>
-            <span class="stars">${starString(app.stars)}</span>
-          </div>
-        </a>
-      `).join('')}
-      <div class="placeholder-note">この下は3作目以降が入るスペースです</div>
+  function comingSoonHtml(nextNumber) {
+    return `
+      <div class="coming-soon-body">
+        <div class="coming-soon-box">
+          <p class="big">近日公開</p>
+          <p>${nextNumber}作目を制作中です。<br>お楽しみに！</p>
+        </div>
+      </div>
+      ${FOOTER_HTML}`;
+  }
+
+  function buildReviewCard(r) {
+    const card = document.createElement('div');
+    card.className = 'review-card';
+    card.innerHTML = `
+      <div class="review-header">
+        <div class="avatar"></div>
+        <div><p class="reviewer"></p><p class="review-meta"></p></div>
+      </div>
+      <div class="review-stars"></div>
+      <p class="review-text"></p>
     `;
+    card.querySelector('.avatar').textContent = (r.author || '?').charAt(0);
+    card.querySelector('.reviewer').textContent = r.author || '';
+    card.querySelector('.review-meta').textContent = r.date || '';
+    card.querySelector('.review-stars').textContent = starString(r.stars);
+    card.querySelector('.review-text').textContent = r.text || '';
+    return card;
+  }
+
+  // 横スクロールスナップのドット追従＋ドットクリック移動（汎用）
+  function initSnapDots(container, dots) {
+    if (!container || !dots.length) return () => {};
+    dots.forEach(dot => dot.addEventListener('click', () => {
+      container.scrollTo({ left: Number(dot.dataset.dot) * container.clientWidth, behavior: 'smooth' });
+    }));
+    let raf = null;
+    let onChange = () => {};
+    container.addEventListener('scroll', () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const idx = Math.round(container.scrollLeft / container.clientWidth);
+        dots.forEach((d, j) => d.classList.toggle('active', j === idx));
+        onChange(idx);
+      });
+    }, { passive: true });
+    return cb => { onChange = cb; };
+  }
+
+  function initAppPage(page, { reviews, slides }) {
+    // 特徴の出現アニメーション
+    const items = page.querySelectorAll('.feature-item');
+    if (items.length) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+      }, { threshold: 0.3 });
+      items.forEach(item => observer.observe(item));
+    }
+
+    // ヒーローの「特徴を見る」ヒント
+    const hint = page.querySelector('.scroll-hint');
+    const featuresEl = page.querySelector('.features-section');
+    if (hint && featuresEl) {
+      hint.addEventListener('click', e => {
+        e.preventDefault();
+        featuresEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    // ヒーローカルーセル（ドットのみJS）
+    initSnapDots(
+      page.querySelector('.hero-carousel-viewport'),
+      [...page.querySelectorAll('.hero-dots .dot')]
+    );
+
+    // 詳細ビューワー（ドット＋解説文の切り替え）
+    const setViewerChange = initSnapDots(
+      page.querySelector('.screenshot-main'),
+      [...page.querySelectorAll('.viewer-dots .dot')]
+    );
+    const label = page.querySelector('.slide-description');
+    if (label && slides.length) {
+      setViewerChange(idx => {
+        const s = slides[Math.max(0, Math.min(idx, slides.length - 1))];
+        label.textContent = s.description || '';
+      });
+    }
+
+    // 「もっと詳しく見ましょう→」→ 詳細（ビューワー）へ縦スナップ移動
+    const detailAnchor = page.querySelector('.viewer-section') || page.querySelector('.section-divider');
+    const jumpBtn = page.querySelector('.detail-jump');
+    if (jumpBtn && detailAnchor) {
+      jumpBtn.addEventListener('click', () => {
+        detailAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    // レビュー描画とスクロールリンク
+    const reviewList = page.querySelector('.review-list');
+    if (reviewList) {
+      reviews.slice(0, 3).forEach(r => reviewList.appendChild(buildReviewCard(r)));
+    }
+    const allList = page.querySelector('.all-review-list');
+    if (allList) {
+      reviews.forEach(r => allList.appendChild(buildReviewCard(r)));
+    }
+    const reviewsBlock = page.querySelector('.reviews-block');
+    const scrollToReviews = () => reviewsBlock?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    page.querySelector('.review-link')?.addEventListener('click', scrollToReviews);
+    page.querySelector('.review-post-link')?.addEventListener('click', scrollToReviews);
+    page.querySelector('.view-all-btn')?.addEventListener('click', () => {
+      page.querySelector('.all-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // ── URLハッシュ（#<appId> / #<appId>/detail）──
+  let pagesRef = [];
+  let currentIdx = 0;
+
+  function computeHash() {
+    const page = pagesRef[currentIdx];
+    const id = page?.dataset.appId;
+    if (!id) return '';
+    const anchor = page.querySelector('.viewer-section') || page.querySelector('.section-divider');
+    let detail = false;
+    if (anchor) {
+      const delta = anchor.getBoundingClientRect().top - page.getBoundingClientRect().top;
+      detail = delta < page.clientHeight * 0.5;
+    }
+    return '#' + id + (detail ? '/detail' : '');
+  }
+
+  let hashRaf = null;
+  function scheduleHashUpdate() {
+    if (hashRaf) return;
+    hashRaf = requestAnimationFrame(() => {
+      hashRaf = null;
+      const h = computeHash();
+      if (h && h !== location.hash) history.replaceState(null, '', h);
+    });
+  }
+
+  function applyHash() {
+    const raw = decodeURIComponent(location.hash.slice(1));
+    if (!raw) return;
+    const [appId, sub] = raw.split('/');
+    const idx = pagesRef.findIndex(p => p.dataset.appId === appId);
+    if (idx < 0) return;
+    currentIdx = idx;
+    if (idx > 0) pager.scrollTo({ left: idx * pager.clientWidth });
+    if (sub === 'detail') {
+      const page = pagesRef[idx];
+      const anchor = page.querySelector('.viewer-section') || page.querySelector('.section-divider');
+      if (anchor) {
+        page.scrollTop = anchor.getBoundingClientRect().top - page.getBoundingClientRect().top;
+      }
+    }
+  }
+
+  function initPagerNav() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function updateArrows() {
+      prevBtn.classList.toggle('hidden', currentIdx <= 0);
+      nextBtn.classList.toggle('hidden', currentIdx >= pagesRef.length - 1);
+    }
+
+    // 現在ページの検出（scrollendはiOS Safari未対応のためIntersectionObserverを使う）
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          currentIdx = pagesRef.indexOf(entry.target);
+          updateArrows();
+          scheduleHashUpdate();
+        }
+      });
+    }, { root: pager, threshold: 0.6 });
+    pagesRef.forEach(p => observer.observe(p));
+
+    prevBtn.addEventListener('click', () => {
+      pager.scrollTo({ left: Math.max(0, currentIdx - 1) * pager.clientWidth, behavior: 'smooth' });
+    });
+    nextBtn.addEventListener('click', () => {
+      pager.scrollTo({ left: Math.min(pagesRef.length - 1, currentIdx + 1) * pager.clientWidth, behavior: 'smooth' });
+    });
+
+    updateArrows();
+  }
+
+  function renderPages(items) {
+    pager.innerHTML =
+      items.map((item, i) => `<section class="app-page" data-app-id="${escapeHtml(item.app.id)}">${appPageHtml(item.app, item.reviews, item.slides, i)}</section>`).join('') +
+      `<section class="app-page coming-soon" data-app-id="coming-soon">${comingSoonHtml(items.length + 1)}</section>`;
+
+    pagesRef = [...pager.querySelectorAll('.app-page')];
+    items.forEach((item, i) => initAppPage(pagesRef[i], item));
+    // 各ページの縦スクロールに応じてハッシュ（/detail）を追従
+    pagesRef.forEach(p => p.addEventListener('scroll', scheduleHashUpdate, { passive: true }));
+    initPagerNav();
+    applyHash();
   }
 
   async function loadApps() {
-    const root = document.getElementById('appRoot');
     try {
       const q = query(collection(db, 'apps'), where('published', '==', true), orderBy('order'));
       const snap = await getDocs(q);
@@ -544,22 +980,36 @@
       snap.forEach(docSnap => apps.push({ id: docSnap.id, ...docSnap.data() }));
 
       if (!apps.length) {
-        root.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px; padding:80px 20px;">公開中のアプリがありません。</p>';
+        pager.innerHTML = '<section class="app-page"><p style="text-align:center; color:var(--muted); font-size:13px; padding:80px 20px;">公開中のアプリがありません。</p></section>';
         return;
       }
 
-      renderHero(apps[0]);
-      renderMoreApps(apps.slice(1));
+      // 各アプリの公開レビューを並列取得
+      const reviewSnaps = await Promise.all(
+        apps.map(app => getDocs(query(collection(db, 'apps', app.id, 'reviews'), where('hidden', '==', false))))
+      );
+      const items = apps.map((app, i) => {
+        const reviews = [];
+        reviewSnaps[i].forEach(r => reviews.push(r.data()));
+        reviews.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        return { app, reviews, slides: slidesFor(app) };
+      });
+
+      renderPages(items);
     } catch (err) {
       console.error('アプリ一覧の読み込みに失敗しました', err);
-      root.innerHTML = '<p style="text-align:center; color:var(--muted); font-size:13px; padding:80px 20px;">読み込みに失敗しました。時間をおいて再度お試しください。</p>';
+      pager.innerHTML = '<section class="app-page"><p style="text-align:center; color:var(--muted); font-size:13px; padding:80px 20px;">読み込みに失敗しました。時間をおいて再度お試しください。</p></section>';
     }
   }
 
   async function trackVisitor() {
     try {
       const ref = doc(db, 'visitors', 'total');
-      await setDoc(ref, { count: increment(1) }, { merge: true });
+      // 同一セッション（タブを開いてから閉じるまで）内の再訪問・リロードでは加算しない
+      if (!sessionStorage.getItem('visitCounted')) {
+        await setDoc(ref, { count: increment(1) }, { merge: true });
+        sessionStorage.setItem('visitCounted', '1');
+      }
       const snap = await getDoc(ref);
       const count = snap.data()?.count ?? 1;
       const el = document.getElementById('visitorCount');
