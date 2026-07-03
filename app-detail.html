@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="apple-touch-icon" href="/icon-512.png">
 <link rel="icon" href="/icon-512.png">
+<link rel="preload" as="image" href="images/slides/img_9305.jpg" fetchpriority="high">
 <title>PCスマホ連動メモ — 100均アプリ</title>
 <style>
   :root {
@@ -252,12 +253,12 @@
   }
 
   const SLIDES = [
-    { image: 'images/IMG_9305.PNG', description: '同じURLで同期しているので、片方(PCでもスマホでも)があってもなくても、使いたいときに両方(遅延なく)使えるのが強み。' },
-    { image: 'images/IMG_9272.PNG', description: '朝、起きたら昨夜視聴したYouTube動画をNotebookLMでデータ化して、このアプリでデコレーションするのが私(開発者)の使い方です。' },
-    { image: 'images/IMG_9273.PNG', description: 'スマホAIで調べた内容を気軽に貼り付けられるのも利点です。このアプリのおかげでナノバナナの明確な使い方を決められました。' },
-    { image: 'images/kesseki.png', description: 'スマホAIで調べた内容にグーグル画像検索で画像を貼り付けた例です。PC側でスクショしてスマホでデコレーションというコラボです。' },
-    { image: 'images/gold.png', description: 'NotebookLMでの【スタジオ】のコンテンツを組み合わせた方が分かりやすいカードができます。スライド資料も1枚の挿絵となるので理解を深めます。' },
-    { image: 'images/IMG_9277.PNG', description: 'YouTube動画のリンクも貼り付けられ、カード内で再生もできます。意外と秀逸なコンテンツでも「あれ？あの動画はどこに？」と整理できない開発者の私。パネルで整理整頓もいい方法。' },
+    { image: 'images/slides/img_9305.jpg', description: '同じURLで同期しているので、片方(PCでもスマホでも)があってもなくても、使いたいときに両方(遅延なく)使えるのが強み。' },
+    { image: 'images/slides/img_9272.jpg', description: '朝、起きたら昨夜視聴したYouTube動画をNotebookLMでデータ化して、このアプリでデコレーションするのが私(開発者)の使い方です。' },
+    { image: 'images/slides/img_9273.jpg', description: 'スマホAIで調べた内容を気軽に貼り付けられるのも利点です。このアプリのおかげでナノバナナの明確な使い方を決められました。' },
+    { image: 'images/slides/kesseki.jpg', description: 'スマホAIで調べた内容にグーグル画像検索で画像を貼り付けた例です。PC側でスクショしてスマホでデコレーションというコラボです。' },
+    { image: 'images/slides/gold.jpg', description: 'NotebookLMでの【スタジオ】のコンテンツを組み合わせた方が分かりやすいカードができます。スライド資料も1枚の挿絵となるので理解を深めます。' },
+    { image: 'images/slides/img_9277.jpg', description: 'YouTube動画のリンクも貼り付けられ、カード内で再生もできます。意外と秀逸なコンテンツでも「あれ？あの動画はどこに？」と整理できない開発者の私。パネルで整理整頓もいい方法。' },
   ];
 
   async function loadApp() {
@@ -265,11 +266,13 @@
     const layout = document.getElementById('layout');
 
     try {
-      const appSnap = await getDoc(doc(db, 'apps', appId));
+      const [appSnap, reviewsSnap] = await Promise.all([
+        getDoc(doc(db, 'apps', appId)),
+        getDocs(query(collection(db, 'apps', appId, 'reviews'), where('hidden', '==', false))),
+      ]);
       if (!appSnap.exists()) throw new Error('app not found');
       const app = appSnap.data();
 
-      const reviewsSnap = await getDocs(query(collection(db, 'apps', appId, 'reviews'), where('hidden', '==', false)));
       const reviews = [];
       reviewsSnap.forEach(r => reviews.push(r.data()));
       reviews.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
