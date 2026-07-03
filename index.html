@@ -85,16 +85,25 @@
     display: flex; flex-direction: column;
   }
   .app-page > * { flex-shrink: 0; }
-  .app-page footer { margin-top: auto; }
+  /* footerに下端合わせの吸着点を持たせ、最終セクション（レビュー下部）まで
+     スクロールし切った位置で静止できるようにする（吸着点がないと直近の
+     セクション先頭まで引き戻され、下部が閲覧できない） */
+  .app-page footer { margin-top: auto; scroll-snap-align: end; }
   /* 縦スナップの吸着点（1画面ぴったりのセクション＋各セクション先頭）。
      紹介部分（悩みごと＋CTA）は .intro-scroll で1つのスナップ領域にまとめる：
      領域が1画面より大きい場合、領域内は自由スクロールでき、上端と下端
      （＝CTAが全部見える位置）が吸着点になる。 */
   .hero, .intro-scroll, .viewer-section, .section-divider { scroll-snap-align: start; }
 
-  /* ── 前後ページ移動の固定矢印 ── */
+  /* ── 前後ページ移動の固定矢印 ──
+     白地（煽り文エリア）のすぐ下＝緑地（ヒーロー）の上角に配置する */
+  #pagerWrap {
+    flex: 1 1 0; min-height: 0;
+    position: relative;
+    display: flex; flex-direction: column;
+  }
   .pager-nav {
-    position: fixed; top: 50%; transform: translateY(-50%);
+    position: absolute; top: 10px;
     z-index: 90;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     border: none; background: none; cursor: pointer; padding: 0;
@@ -556,20 +565,22 @@
 
 <p class="sub-tagline">自分（開発者）が逆の立場でも100円なら払ってもいいな！？<br>と思えるものをつくりました。</p>
 
-<main id="pager">
-  <section class="app-page">
-    <p style="opacity:0.7; font-size:13px; text-align:center; padding:80px 20px;">読み込み中...</p>
-  </section>
-</main>
+<div id="pagerWrap">
+  <main id="pager">
+    <section class="app-page">
+      <p style="opacity:0.7; font-size:13px; text-align:center; padding:80px 20px;">読み込み中...</p>
+    </section>
+  </main>
 
-<button id="prevBtn" class="pager-nav hidden" type="button" aria-label="前の作品へ">
-  <span class="circle">&#8249;</span>
-  <span class="nav-label">前の作品</span>
-</button>
-<button id="nextBtn" class="pager-nav hidden" type="button" aria-label="次の作品へ">
-  <span class="circle">&#8250;</span>
-  <span class="nav-label">次の作品</span>
-</button>
+  <button id="prevBtn" class="pager-nav hidden" type="button" aria-label="前の作品へ">
+    <span class="circle">&#8249;</span>
+    <span class="nav-label">前の作品</span>
+  </button>
+  <button id="nextBtn" class="pager-nav hidden" type="button" aria-label="次の作品へ">
+    <span class="circle">&#8250;</span>
+    <span class="nav-label">次の作品</span>
+  </button>
+</div>
 
 <script type="module">
   import { db } from "./firebase-config.js";
