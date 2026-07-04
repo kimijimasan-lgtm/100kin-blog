@@ -96,6 +96,8 @@ index.html を「アプリ1つ＝横1ページ」のページャ構成に全面�
 
 **来店者数カウンターの重複カウント修正:**
 - `trackVisitor()` に sessionStorage ガード（キー `visitCounted`）を追加。同一タブ内のリロード・トップ⇔詳細往復では加算されず、1セッション1カウントになった
+- **追加ガード（v2026-07-04j）**: `navigator.webdriver === true`（Playwright等の自動ブラウザ）と `localhost`/`127.0.0.1`（ローカル開発。firebase-configは本番Firestoreを指すため）はカウントしない。検証作業でカウンターが汚れる問題（テスト1コンテキスト=+1、1日で+50超）の恒久対策。実装後カウンターを0にリセットし、自動ブラウザ3回アクセスで増えないことを実証済み
+- カウンターのリセット方法: `visitors/total` はルールで公開updateが許可されているため、認証なしREST PATCHで可能（`curl -X PATCH ".../documents/visitors/total?updateMask.fieldPaths=count" -d '{"fields":{"count":{"integerValue":"0"}}}'`）
 
 **デスクトップレイアウトのハマりポイント:**
 - PC（860px以上）の横並びヒーローでは、カルーセルの高さが親から与えられず `flex: 1 1 0` が0に潰れる（さらに flex の `align-items: stretch` が画像の `aspect-ratio` 由来の高さを打ち消す）。メディアクエリ内で `.hero-carousel-viewport { flex: 0 0 auto }` ＋ track/page `height: auto` にして画像のアスペクト比から高さを導出して解決
