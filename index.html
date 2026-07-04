@@ -98,6 +98,12 @@
      領域が1画面より大きい場合、領域内は自由スクロールでき、上端と下端
      （＝CTAが全部見える位置）が吸着点になる。 */
   .hero, .intro-scroll, .viewer-section, .section-divider { scroll-snap-align: start; }
+  /* 詳細（購入・レビュー）〜footer の縦読みゾーンは横パンを禁止する。
+     縦スクロールが末尾（境界）に達すると、指の軌道のわずかな横ぶれが
+     外側の横ページャへ連鎖し「次の作品」へ意図せず切り替わるため
+     （iOS Safariの入れ子スナップの運動量ハンドオフ）。
+     作品の切替はヒーロー／ビューワー画面でのスワイプか左右の矢印で行う。 */
+  .section-divider, .detail-section, .app-page footer { touch-action: pan-y; }
 
   /* ── 前後ページ移動の固定矢印 ──
      白地（煽り文エリア）のすぐ下＝緑地（ヒーロー）の上角に配置する */
@@ -639,7 +645,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04d';
+  const BUILD_TAG = 'v2026-07-04e';
 
   const FOOTER_HTML = `
     <footer>
