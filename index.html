@@ -659,7 +659,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04i';
+  const BUILD_TAG = 'v2026-07-04j';
 
   const FOOTER_HTML = `
     <footer>
@@ -1048,8 +1048,13 @@
   async function trackVisitor() {
     try {
       const ref = doc(db, 'visitors', 'total');
-      // 同一セッション（タブを開いてから閉じるまで）内の再訪問・リロードでは加算しない
-      if (!sessionStorage.getItem('visitCounted')) {
+      // 実際の来店だけをカウントする:
+      // - navigator.webdriver … Playwright等の自動ブラウザを除外（検証作業でカウンターを汚さない）
+      // - localhost … ローカル開発中のアクセスを除外（firebase-configは本番Firestoreを指しているため）
+      // - sessionStorage … 同一セッション（タブを開いてから閉じるまで）内の再訪問・リロードでは加算しない
+      const isAutomated = navigator.webdriver === true;
+      const isLocalDev = ['localhost', '127.0.0.1'].includes(location.hostname);
+      if (!isAutomated && !isLocalDev && !sessionStorage.getItem('visitCounted')) {
         await setDoc(ref, { count: increment(1) }, { merge: true });
         sessionStorage.setItem('visitCounted', '1');
       }
