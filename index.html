@@ -57,6 +57,16 @@
     color: #ffe033;
     white-space: nowrap;
   }
+  /* 詳細モーダル表示中は「来店者数」の代わりに戻り方のヒントを出す */
+  .modal-hint {
+    display: none;
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffe033;
+    white-space: nowrap;
+  }
+  body.modal-open .visitor-count { display: none; }
+  body.modal-open .modal-hint { display: inline; }
 
   /* トップバー直下の小さな煽り文 */
   .sub-tagline {
@@ -613,6 +623,7 @@
 <header>
   <h1>100均アプリ</h1>
   <span class="visitor-count" id="visitorCount"></span>
+  <span class="modal-hint">右スワイプでトップへ</span>
 </header>
 
 <p class="sub-tagline">自分（開発者）が逆の立場でも100円なら払ってもいいな！？<br>と思えるものをつくりました。</p>
@@ -688,7 +699,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04m';
+  const BUILD_TAG = 'v2026-07-04n';
 
   const FOOTER_HTML = `
     <footer>
@@ -979,6 +990,7 @@
     openIdx = idx;
     modal.querySelector('.modal-scroll').scrollTop = 0;   // 常に先頭（ビューワー）から
     modal.classList.add('open');
+    document.body.classList.add('modal-open');            // トップバーの表示切替(来店者数→戻りヒント)
     const id = modal.dataset.appId;
     if (push) {
       history.pushState({ detail: id }, '', '#' + id + '/detail');
@@ -993,6 +1005,7 @@
     if (openIdx === null) return;
     const modal = modalsRef[openIdx];
     modal.classList.remove('open');
+    document.body.classList.remove('modal-open');
     const id = modal.dataset.appId;
     openIdx = null;
     if (fromPop) return;                       // 戻る操作由来: 履歴は処理済み
@@ -1155,6 +1168,19 @@
   }
   window.addEventListener('resize', refitViewport, { passive: true });
   window.visualViewport?.addEventListener('resize', refitViewport, { passive: true });
+  // 外部サイト（ゲスト/購入）から「戻る」で復帰したとき（bfcache復帰を含む）は
+  // resize が発火しないことがあり、出発時とビューポート高さが違うと下部に
+  // 空白が残り続ける。表示復帰系イベントでも再計算する。
+  // iOSはアドレスバーの高さ確定が復帰より遅れることがあるため追い打ちも入れる。
+  const refitOnReturn = () => {
+    refitViewport();
+    setTimeout(refitViewport, 250);
+    setTimeout(refitViewport, 800);
+  };
+  window.addEventListener('pageshow', refitOnReturn);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refitOnReturn();
+  });
   refitViewport();
 
   // トップバーの「100均アプリ」バッジをダブルタップ（ダブルクリック）で
