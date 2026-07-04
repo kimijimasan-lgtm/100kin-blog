@@ -699,7 +699,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04n';
+  const BUILD_TAG = 'v2026-07-04o';
 
   const FOOTER_HTML = `
     <footer>
@@ -1157,14 +1157,22 @@
   // ①--app-height を実測値に更新（下部空白の恒久化を防ぐ）
   // ②詳細を読んでいる最中ならドック位置(最下端)を維持
   // ③横ページャの位置を現在ページに合わせ直す
-  let refitRaf = null;
+  // 同期処理・値比較ベース。
+  // ⚠️ rAFやフラグでの間引きは絶対に入れないこと: 予約直後にページが凍結
+  // (bfcache格納)されるとコールバックが失われてフラグが立ちっぱなしになり、
+  // 以後の再計算がすべて無視される＝「外部サイト往復を繰り返すと空白が
+  // 恒久化し二度と直らない」バグの原因だった。
+  let appliedH = 0, appliedW = 0;
   function refitViewport() {
-    if (refitRaf) return;
-    refitRaf = requestAnimationFrame(() => {
-      refitRaf = null;
-      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-      if (pagesRef.length) pager.scrollTo({ left: currentIdx * pager.clientWidth });
-    });
+    const h = window.innerHeight;
+    const w = window.innerWidth;
+    const want = `${h}px`;
+    const current = document.documentElement.style.getPropertyValue('--app-height');
+    if (h === appliedH && w === appliedW && current === want) return;   // 変化なし
+    appliedH = h;
+    appliedW = w;
+    document.documentElement.style.setProperty('--app-height', want);
+    if (pagesRef.length) pager.scrollTo({ left: currentIdx * pager.clientWidth });
   }
   window.addEventListener('resize', refitViewport, { passive: true });
   window.visualViewport?.addEventListener('resize', refitViewport, { passive: true });
@@ -1181,6 +1189,9 @@
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') refitOnReturn();
   });
+  // ウォッチドッグ: どの復帰イベントを取りこぼしても最大1.2秒で自己修復する保険。
+  // 値が変わっていなければ何もしないので負荷は無視できる
+  setInterval(refitViewport, 1200);
   refitViewport();
 
   // トップバーの「100均アプリ」バッジをダブルタップ（ダブルクリック）で
