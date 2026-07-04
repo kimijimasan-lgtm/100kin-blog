@@ -284,6 +284,8 @@ index.html を「アプリ1つ＝横1ページ」のページャ構成に全面�
 - Firestore: `(default)` データベースをasia-northeast1に作成済み。`firestore.rules` は現状 `allow read, write: if false`（全拒否）のデフォルト安全設定のままデプロイ済み（スキーマ未設計のため）
 - `.firebaserc` / `firebase.json` / `firestore.indexes.json` を追加済み
 - howto-v2側のFirebaseプロジェクト（`torisetu-234c3`）とは別プロジェクト。統合方針（ゲストボタンの遷移先・UID連携方法）は未決定
+- **メモアプリ本体の正規URLは `https://crossmemo.web.app`（2026-07-04確認）**。旧GitHub Pages（`kimijimasan-lgtm.github.io/howto-v2/`）も生きているが、リンク先はcrossmemoに統一する。ゲストモードは `?guest=true` 付き
+- **2026-07-04 リンク修正**: Firestore `apps/memo-sync` の `guestLink` が旧GitHub Pages URLのままだった → `https://crossmemo.web.app/?guest=true` に更新。さらに `stripeLink` が**テスト用**（`test_5kQ...`）のまま残っていたのを発見 → 本番URL（`8x24gAe62bwQaYO07teUU00`）に更新（login.htmlは両方とも修正済みだったが、Firestore側が未更新だった。**リンク類はlogin.htmlとFirestoreの2箇所にあるので、変更時は必ず両方更新すること**）
 - Firebase Hosting: `firebase deploy --only hosting` でデプロイ済み（2026-06-23）。公開URL `https://apps100kin.web.app`。`firebase.json` の `public: "."` 設定により `index.html`/`app-detail.html`/`login.html`/`admin/` がそのまま公開される（`src/`・`*.md`・`save.bat` は ignore 設定で除外済み）
 
 ---
