@@ -84,30 +84,33 @@
     scroll-snap-align: start;
     scroll-snap-stop: always;         /* 強いフリックでの複数ページ飛ばしを防ぐ */
     overflow-y: auto; overflow-x: hidden;
-    scroll-snap-type: y proximity;    /* mandatoryだと詳細末尾で「止まりきれない」感触が残るため緩和（2026-07-04実機確認） */
+    scroll-snap-type: y mandatory;    /* 表紙（ヒーロー〜ビューワー）のピタッと感。詳細は .detail-block 内部スクロールで自由 */
     overscroll-behavior-y: contain;   /* ページ端でのpull-to-refresh等への連鎖を抑止 */
     display: flex; flex-direction: column;
   }
   .app-page > * { flex-shrink: 0; }
-  /* footerに下端合わせの吸着点を持たせ、最終セクション（レビュー下部）まで
-     スクロールし切った位置で静止できるようにする（吸着点がないと直近の
-     セクション先頭まで引き戻され、下部が閲覧できない） */
-  .app-page footer { margin-top: auto; scroll-snap-align: end; }
+  /* margin-top: auto は近日公開ページ（内容が1画面未満）でfooterを最下部に押し下げる用。
+     アプリページのfooterは .detail-block 内部スクローラーの末尾にあり、スナップの影響を受けない */
+  .app-page footer { margin-top: auto; }
   /* 縦スナップの吸着点（1画面ぴったりのセクション＋各セクション先頭）。
      紹介部分（悩みごと＋CTA）は .intro-scroll で1つのスナップ領域にまとめる：
      領域が1画面より大きい場合、領域内は自由スクロールでき、上端と下端
      （＝CTAが全部見える位置）が吸着点になる。 */
   .hero, .intro-scroll, .viewer-section { scroll-snap-align: start; }
-  /* 詳細ブロック（詳細・購入の帯〜レビュー〜footer）:
-     - scroll-snap-align: start … 帯の位置が「入り口」の吸着点になる。
-       領域全体は1画面より大きいため、仕様上ブロック内部は自由スクロールになり、
-       どの速さのフリックでも好きな位置で静止できる（吸着点間隔が1画面未満だと
-       「静止禁止ゾーン」になり、末尾を読もうとすると入り口へヤンクされるバグの修正）。
-       最下部の錨として footer の scroll-snap-align: end は必ず残すこと
-       （外すと端数ピクセルで最下部の静止判定が失敗し入り口まで引き戻される）。
+  /* 詳細ブロック（詳細・購入の帯〜レビュー〜footer）＝「1画面の窓＋内部スクロール」:
+     - 外側(.app-page)の mandatory スナップに対しては、ちょうど1画面の
+       スナップセクション（snap-align: start）として振る舞う＝表紙のピタッと感を維持。
+     - 中身は overflow-y: auto の内部スクローラー。スナップは一切効かないので、
+       どの速さのフリックでも好きな位置・末尾で自由に静止できる
+       （mandatory時代の「静止禁止ゾーン」も proximity時代の「吸着の引っ張り」も発生しない）。
      - touch-action: pan-y … 縦読み中の横ぶれが外側ページャへ連鎖して
        「次の作品」へ切り替わるのを防ぐ（作品切替はヒーロー／ビューワーでのスワイプか矢印） */
-  .detail-block { scroll-snap-align: start; touch-action: pan-y; }
+  .detail-block {
+    scroll-snap-align: start;
+    height: 100%;
+    overflow-y: auto; overflow-x: hidden;
+    touch-action: pan-y;
+  }
 
   /* ── 前後ページ移動の固定矢印 ──
      白地（煽り文エリア）のすぐ下＝緑地（ヒーロー）の上角に配置する */
@@ -649,7 +652,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04g';
+  const BUILD_TAG = 'v2026-07-04h';
 
   const FOOTER_HTML = `
     <footer>
@@ -1059,7 +1062,12 @@
     const now = Date.now();
     if (now - lastLogoTap < 400) {
       lastLogoTap = 0;
-      pagesRef[currentIdx]?.scrollTo({ top: 0, behavior: 'smooth' });
+      const page = pagesRef[currentIdx];
+      if (page) {
+        const blk = page.querySelector('.detail-block');
+        if (blk) blk.scrollTop = 0;   // 詳細の内部スクロールもリセット
+        page.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } else {
       lastLogoTap = now;
     }
