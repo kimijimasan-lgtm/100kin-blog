@@ -84,7 +84,7 @@
     scroll-snap-align: start;
     scroll-snap-stop: always;         /* 強いフリックでの複数ページ飛ばしを防ぐ */
     overflow-y: auto; overflow-x: hidden;
-    scroll-snap-type: y mandatory;    /* 硬すぎる場合は proximity に変更する */
+    scroll-snap-type: y proximity;    /* mandatoryだと詳細末尾で「止まりきれない」感触が残るため緩和（2026-07-04実機確認） */
     overscroll-behavior-y: contain;   /* ページ端でのpull-to-refresh等への連鎖を抑止 */
     display: flex; flex-direction: column;
   }
@@ -649,7 +649,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04f';
+  const BUILD_TAG = 'v2026-07-04g';
 
   const FOOTER_HTML = `
     <footer>
