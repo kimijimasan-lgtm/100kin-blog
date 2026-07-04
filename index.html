@@ -25,6 +25,10 @@
     padding-top: 52px;
     height: 100vh;   /* dvh非対応ブラウザ用フォールバック */
     height: 100dvh;
+    /* iOSのアドレスバー表示/非表示でdvhの更新が取りこぼされると、画面下部に
+       恒久的な空白ができる。JSが実測値(innerHeight)を--app-heightで供給し、
+       resize系イベントで追従させる(下のrefitViewport参照) */
+    height: var(--app-height, 100dvh);
     overflow: hidden;               /* 縦スクロールは各ページ内部で行う */
     display: flex; flex-direction: column;
   }
@@ -662,7 +666,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04k';
+  const BUILD_TAG = 'v2026-07-04l';
 
   const FOOTER_HTML = `
     <footer>
@@ -910,9 +914,23 @@
     const blk = page.querySelector('.detail-block');
     if (blk) {
       let dockRaf = null;
+      let locked = null;
+      const applyLock = (lock) => {
+        if (lock === locked) return;
+        locked = lock;
+        // iOS Safariはoverflow切替時に内部スクロール位置を0へリセットする癖が
+        // あるため、切替をまたいで位置を保全する(「末尾→先頭へ巻き戻る」対策)
+        const keep = blk.scrollTop;
+        blk.style.overflowY = lock ? 'hidden' : 'auto';
+        if (blk.scrollTop !== keep) blk.scrollTop = keep;
+      };
       const updateDock = () => {
-        const docked = page.scrollHeight - page.clientHeight - page.scrollTop <= 2;
-        blk.style.overflowY = docked ? 'auto' : 'hidden';
+        const dist = page.scrollHeight - page.clientHeight - page.scrollTop;
+        // ヒステリシス: 2px以内で解錠、40px超でのみ施錠。中間は状態維持。
+        // 末尾バウンスの揺れが外側へ数pxチェーンした程度では施錠しない
+        if (dist <= 2) applyLock(false);
+        else if (dist > 40) applyLock(true);
+        else if (locked === null) applyLock(true);
       };
       page.addEventListener('scroll', () => {
         if (dockRaf) return;
@@ -1087,6 +1105,30 @@
       // カウント失敗時は非表示のまま
     }
   }
+
+  // ── ビューポート高さの追従（refitViewport）──
+  // アドレスバーの表示/非表示・回転などで実際の画面高さが変わったら、
+  // ①--app-height を実測値に更新（下部空白の恒久化を防ぐ）
+  // ②詳細を読んでいる最中ならドック位置(最下端)を維持
+  // ③横ページャの位置を現在ページに合わせ直す
+  let refitRaf = null;
+  function refitViewport() {
+    if (refitRaf) return;
+    refitRaf = requestAnimationFrame(() => {
+      refitRaf = null;
+      document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
+      pagesRef.forEach(pg => {
+        const blk = pg.querySelector('.detail-block');
+        if (blk && blk.style.overflowY === 'auto') {
+          pg.scrollTop = pg.scrollHeight - pg.clientHeight;
+        }
+      });
+      if (pagesRef.length) pager.scrollTo({ left: currentIdx * pager.clientWidth });
+    });
+  }
+  window.addEventListener('resize', refitViewport, { passive: true });
+  window.visualViewport?.addEventListener('resize', refitViewport, { passive: true });
+  refitViewport();
 
   // トップバーの「100均アプリ」バッジをダブルタップ（ダブルクリック）で
   // 現在のアプリの紹介ページ先頭までスムーズにスナップスクロールして戻る
