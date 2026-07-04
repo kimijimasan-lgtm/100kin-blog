@@ -88,35 +88,55 @@
     scroll-snap-align: start;
     scroll-snap-stop: always;         /* 強いフリックでの複数ページ飛ばしを防ぐ */
     overflow-y: auto; overflow-x: hidden;
-    scroll-snap-type: y mandatory;    /* 表紙（ヒーロー〜ビューワー）のピタッと感。詳細は .detail-block 内部スクロールで自由 */
+    scroll-snap-type: y mandatory;    /* 表紙（ヒーロー〜悩みごと〜CTA）のピタッと感。詳細は独立モーダル（.detail-modal）で自由スクロール */
     overscroll-behavior-y: contain;   /* ページ端でのpull-to-refresh等への連鎖を抑止 */
     display: flex; flex-direction: column;
   }
   .app-page > * { flex-shrink: 0; }
   /* margin-top: auto は近日公開ページ（内容が1画面未満）でfooterを最下部に押し下げる用。
-     アプリページのfooterは .detail-block 内部スクローラーの末尾にあり、スナップの影響を受けない */
+     アプリの詳細footerはモーダル内スクロールの末尾にあり、スナップの影響を受けない */
   .app-page footer { margin-top: auto; }
   /* 縦スナップの吸着点（1画面ぴったりのセクション＋各セクション先頭）。
      紹介部分（悩みごと＋CTA）は .intro-scroll で1つのスナップ領域にまとめる：
      領域が1画面より大きい場合、領域内は自由スクロールでき、上端と下端
      （＝CTAが全部見える位置）が吸着点になる。 */
-  .hero, .intro-scroll, .viewer-section { scroll-snap-align: start; }
-  /* 詳細ブロック（詳細・購入の帯〜レビュー〜footer）＝「1画面の窓＋内部スクロール」:
-     - 外側(.app-page)の mandatory スナップに対しては、ちょうど1画面の
-       スナップセクション（snap-align: start）として振る舞う＝表紙のピタッと感を維持。
-     - 中身は overflow-y: auto の内部スクローラー。スナップは一切効かないので、
-       どの速さのフリックでも好きな位置・末尾で自由に静止できる
-       （mandatory時代の「静止禁止ゾーン」も proximity時代の「吸着の引っ張り」も発生しない）。
-     - touch-action: pan-y … 縦読み中の横ぶれが外側ページャへ連鎖して
-       「次の作品」へ切り替わるのを防ぐ（作品切替はヒーロー／ビューワーでのスワイプか矢印） */
-  .detail-block {
-    /* end揃え: 吸着位置が「外側スクロールの最大値ちょうど」に定義される。
-       startだとdvhの端数で吸着点が最大値より1px先になることがあり、
-       mandatoryが届かない吸着点へ吸い付こうとして末尾が微振動する */
-    scroll-snap-align: end;
-    height: 100%;
+  .hero, .intro-scroll { scroll-snap-align: start; }
+  /* 表紙の最終アンカー: CTAが全部見える位置（＝スクロール最下端ちょうど）を吸着点にする。
+     end揃えなので端数ピクセルがあっても必ず到達できる */
+  .detail-cta { scroll-snap-align: end; }
+
+  /* ── 詳細モーダル ──
+     詳細（ビューワー〜購入〜レビュー〜footer）は縦スナップの祖先を一切持たない
+     独立した固定オーバーレイ。中身はただの overflow-y: auto なので、
+     どの速さのスクロールでも好きな位置・末尾で確実に静止できる。
+     （表紙スクローラーの子として持たせる構成は、iOSのmandatory再スナップが
+       境界の揺らぎのたびに介入して末尾閲覧を壊すため全廃した） */
+  .detail-modal {
+    position: fixed; top: 52px; left: 0; right: 0;
+    height: calc(var(--app-height, 100dvh) - 52px);
+    z-index: 95;                       /* 矢印(90)より上・ヘッダー(100)より下 */
+    background: var(--bg);
+    transform: translateY(103%);
+    visibility: hidden;
+    transition: transform 0.3s ease, visibility 0.3s;
+    display: flex; flex-direction: column;
+  }
+  .detail-modal.open { transform: translateY(0); visibility: visible; }
+  .modal-scroll {
+    flex: 1 1 0; min-height: 0;
     overflow-y: auto; overflow-x: hidden;
-    touch-action: pan-y;
+    overscroll-behavior-y: contain;    /* 背面へのスクロール連鎖を遮断 */
+    touch-action: pan-y;               /* モーダル内タッチの横ぶれが横ページャに漏れないように */
+  }
+  .modal-close {
+    position: absolute; top: 8px; right: 8px; z-index: 6;
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.85);
+    background: rgba(45,90,39,0.92); color: #fff;
+    font-size: 17px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    font-family: inherit;
   }
 
   /* ── 前後ページ移動の固定矢印 ──
@@ -614,6 +634,8 @@
   </button>
 </div>
 
+<div id="modalRoot"></div>
+
 <script type="module">
   import { db } from "./firebase-config.js";
   import { collection, query, where, orderBy, getDocs, doc, setDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
@@ -666,7 +688,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-04l';
+  const BUILD_TAG = 'v2026-07-04m';
 
   const FOOTER_HTML = `
     <footer>
@@ -807,12 +829,17 @@
           <button class="cta-btn detail-jump" type="button">もっと詳しく見ましょう →</button>
         </section>
       </div>
-      ${viewerSectionHtml(slides)}
-      <div class="detail-block">
+    `;
+  }
+
+  function detailModalHtml(app, reviews, slides) {
+    return `
+      <button class="modal-close" type="button" aria-label="詳細を閉じる">✕</button>
+      <div class="modal-scroll">
+        ${viewerSectionHtml(slides)}
         ${detailSectionsHtml(app, reviews)}
         ${FOOTER_HTML}
-      </div>
-    `;
+      </div>`;
   }
 
   function comingSoonHtml(nextNumber) {
@@ -865,7 +892,7 @@
     return cb => { onChange = cb; };
   }
 
-  function initAppPage(page, { reviews, slides }) {
+  function initAppPage(page, idx) {
     // 特徴の出現アニメーション
     const items = page.querySelectorAll('.feature-item');
     if (items.length) {
@@ -893,12 +920,17 @@
       [...page.querySelectorAll('.hero-dots .dot')]
     );
 
-    // 詳細ビューワー（ドット＋解説文の切り替え）
+    // 「もっと詳しく見ましょう→」→ 詳細モーダルを開く
+    page.querySelector('.detail-jump')?.addEventListener('click', () => openDetail(idx));
+  }
+
+  function initDetailModal(modal, { reviews, slides }) {
+    // ビューワー（ドット＋解説文の切り替え）
     const setViewerChange = initSnapDots(
-      page.querySelector('.screenshot-main'),
-      [...page.querySelectorAll('.viewer-dots .dot')]
+      modal.querySelector('.screenshot-main'),
+      [...modal.querySelectorAll('.viewer-dots .dot')]
     );
-    const label = page.querySelector('.slide-description');
+    const label = modal.querySelector('.slide-description');
     if (label && slides.length) {
       setViewerChange(idx => {
         const i = Math.max(0, Math.min(idx, slides.length - 1));
@@ -907,80 +939,79 @@
       });
     }
 
-    // 詳細ブロックのドックロック:
-    // 外側スクロールがブロック入り口（＝最下端）に完全に到着するまで内側スクロールを
-    // 無効化する。表紙からの強いフリックの残り運動量が内側へ流れ込み、
-    // 着地が暴れて「末尾で止まりきれない」感触になるのを防ぐ。
-    const blk = page.querySelector('.detail-block');
-    if (blk) {
-      let dockRaf = null;
-      let locked = null;
-      const applyLock = (lock) => {
-        if (lock === locked) return;
-        locked = lock;
-        // iOS Safariはoverflow切替時に内部スクロール位置を0へリセットする癖が
-        // あるため、切替をまたいで位置を保全する(「末尾→先頭へ巻き戻る」対策)
-        const keep = blk.scrollTop;
-        blk.style.overflowY = lock ? 'hidden' : 'auto';
-        if (blk.scrollTop !== keep) blk.scrollTop = keep;
-      };
-      const updateDock = () => {
-        const dist = page.scrollHeight - page.clientHeight - page.scrollTop;
-        // ヒステリシス: 2px以内で解錠、40px超でのみ施錠。中間は状態維持。
-        // 末尾バウンスの揺れが外側へ数pxチェーンした程度では施錠しない
-        if (dist <= 2) applyLock(false);
-        else if (dist > 40) applyLock(true);
-        else if (locked === null) applyLock(true);
-      };
-      page.addEventListener('scroll', () => {
-        if (dockRaf) return;
-        dockRaf = requestAnimationFrame(() => { dockRaf = null; updateDock(); });
-      }, { passive: true });
-      updateDock();
-    }
-
-    // 「もっと詳しく見ましょう→」→ 詳細（ビューワー）へ縦スナップ移動
-    const detailAnchor = page.querySelector('.viewer-section') || page.querySelector('.section-divider');
-    const jumpBtn = page.querySelector('.detail-jump');
-    if (jumpBtn && detailAnchor) {
-      jumpBtn.addEventListener('click', () => {
-        detailAnchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
+    // 「詳細・購入へ」ヒント → モーダル内をスクロール
+    modal.querySelector('.viewer-scroll-hint')?.addEventListener('click', () => {
+      modal.querySelector('.section-divider')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 
     // レビュー描画とスクロールリンク
-    const reviewList = page.querySelector('.review-list');
+    const reviewList = modal.querySelector('.review-list');
     if (reviewList) {
       reviews.slice(0, 3).forEach(r => reviewList.appendChild(buildReviewCard(r)));
     }
-    const allList = page.querySelector('.all-review-list');
+    const allList = modal.querySelector('.all-review-list');
     if (allList) {
       reviews.forEach(r => allList.appendChild(buildReviewCard(r)));
     }
-    const reviewsBlock = page.querySelector('.reviews-block');
+    const reviewsBlock = modal.querySelector('.reviews-block');
     const scrollToReviews = () => reviewsBlock?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    page.querySelector('.review-link')?.addEventListener('click', scrollToReviews);
-    page.querySelector('.review-post-link')?.addEventListener('click', scrollToReviews);
-    page.querySelector('.view-all-btn')?.addEventListener('click', () => {
-      page.querySelector('.all-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    modal.querySelector('.review-link')?.addEventListener('click', scrollToReviews);
+    modal.querySelector('.review-post-link')?.addEventListener('click', scrollToReviews);
+    modal.querySelector('.view-all-btn')?.addEventListener('click', () => {
+      modal.querySelector('.all-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
+
+    // 閉じるボタン
+    modal.querySelector('.modal-close').addEventListener('click', () => closeDetail());
   }
 
-  // ── URLハッシュ（#<appId> / #<appId>/detail）──
+  // ── URLハッシュ（#<appId> / #<appId>/detail）とモーダル開閉 ──
   let pagesRef = [];
+  let modalsRef = [];
   let currentIdx = 0;
+  let openIdx = null;        // 開いている詳細モーダルのindex（null=閉）
+  let openedViaPush = false; // pushStateで開いたか（✕で閉じるときhistory.back()する）
+
+  function openDetail(idx, { push = true } = {}) {
+    const modal = modalsRef[idx];
+    if (!modal || openIdx === idx) return;
+    if (openIdx !== null) modalsRef[openIdx].classList.remove('open');
+    openIdx = idx;
+    modal.querySelector('.modal-scroll').scrollTop = 0;   // 常に先頭（ビューワー）から
+    modal.classList.add('open');
+    const id = modal.dataset.appId;
+    if (push) {
+      history.pushState({ detail: id }, '', '#' + id + '/detail');
+      openedViaPush = true;
+    } else {
+      history.replaceState(null, '', '#' + id + '/detail');
+      openedViaPush = false;
+    }
+  }
+
+  function closeDetail({ fromPop = false } = {}) {
+    if (openIdx === null) return;
+    const modal = modalsRef[openIdx];
+    modal.classList.remove('open');
+    const id = modal.dataset.appId;
+    openIdx = null;
+    if (fromPop) return;                       // 戻る操作由来: 履歴は処理済み
+    if (openedViaPush) {
+      openedViaPush = false;
+      history.back();                          // pushした分を戻す（popstateは開いていないので無視される）
+    } else {
+      history.replaceState(null, '', '#' + id);
+    }
+  }
+
+  // iOSの戻るジェスチャー／ブラウザバックでモーダルを閉じる
+  window.addEventListener('popstate', () => {
+    if (openIdx !== null) closeDetail({ fromPop: true });
+  });
 
   function computeHash() {
-    const page = pagesRef[currentIdx];
-    const id = page?.dataset.appId;
-    if (!id) return '';
-    const anchor = page.querySelector('.viewer-section') || page.querySelector('.section-divider');
-    let detail = false;
-    if (anchor) {
-      const delta = anchor.getBoundingClientRect().top - page.getBoundingClientRect().top;
-      detail = delta < page.clientHeight * 0.5;
-    }
-    return '#' + id + (detail ? '/detail' : '');
+    const id = pagesRef[currentIdx]?.dataset.appId;
+    return id ? '#' + id : '';
   }
 
   let hashRaf = null;
@@ -988,6 +1019,7 @@
     if (hashRaf) return;
     hashRaf = requestAnimationFrame(() => {
       hashRaf = null;
+      if (openIdx !== null) return;            // モーダル表示中は/detailハッシュを維持
       const h = computeHash();
       if (h && h !== location.hash) history.replaceState(null, '', h);
     });
@@ -1001,13 +1033,7 @@
     if (idx < 0) return;
     currentIdx = idx;
     if (idx > 0) pager.scrollTo({ left: idx * pager.clientWidth });
-    if (sub === 'detail') {
-      const page = pagesRef[idx];
-      const anchor = page.querySelector('.viewer-section') || page.querySelector('.section-divider');
-      if (anchor) {
-        page.scrollTop = anchor.getBoundingClientRect().top - page.getBoundingClientRect().top;
-      }
-    }
+    if (sub === 'detail' && modalsRef[idx]) openDetail(idx, { push: false });
   }
 
   function initPagerNav() {
@@ -1047,9 +1073,16 @@
       `<section class="app-page coming-soon" data-app-id="coming-soon">${comingSoonHtml(items.length + 1)}</section>`;
 
     pagesRef = [...pager.querySelectorAll('.app-page')];
-    items.forEach((item, i) => initAppPage(pagesRef[i], item));
-    // 各ページの縦スクロールに応じてハッシュ（/detail）を追従
-    pagesRef.forEach(p => p.addEventListener('scroll', scheduleHashUpdate, { passive: true }));
+    items.forEach((item, i) => initAppPage(pagesRef[i], i));
+
+    // 詳細モーダル（アプリごとに1つ、bodyレベルの#modalRootに配置）
+    const modalRoot = document.getElementById('modalRoot');
+    modalRoot.innerHTML = items.map(item =>
+      `<div class="detail-modal" data-app-id="${escapeHtml(item.app.id)}">${detailModalHtml(item.app, item.reviews, item.slides)}</div>`
+    ).join('');
+    modalsRef = [...modalRoot.querySelectorAll('.detail-modal')];
+    items.forEach((item, i) => initDetailModal(modalsRef[i], item));
+
     initPagerNav();
     applyHash();
   }
@@ -1117,12 +1150,6 @@
     refitRaf = requestAnimationFrame(() => {
       refitRaf = null;
       document.documentElement.style.setProperty('--app-height', `${window.innerHeight}px`);
-      pagesRef.forEach(pg => {
-        const blk = pg.querySelector('.detail-block');
-        if (blk && blk.style.overflowY === 'auto') {
-          pg.scrollTop = pg.scrollHeight - pg.clientHeight;
-        }
-      });
       if (pagesRef.length) pager.scrollTo({ left: currentIdx * pager.clientWidth });
     });
   }
@@ -1138,12 +1165,8 @@
     const now = Date.now();
     if (now - lastLogoTap < 400) {
       lastLogoTap = 0;
-      const page = pagesRef[currentIdx];
-      if (page) {
-        const blk = page.querySelector('.detail-block');
-        if (blk) blk.scrollTop = 0;   // 詳細の内部スクロールもリセット
-        page.scrollTo({ top: 0, behavior: 'smooth' });
-      }
+      if (openIdx !== null) closeDetail();   // 詳細モーダルが開いていれば閉じる
+      pagesRef[currentIdx]?.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       lastLogoTap = now;
     }
