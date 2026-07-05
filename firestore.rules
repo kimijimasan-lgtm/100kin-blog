@@ -28,15 +28,50 @@ service cloud.firestore {
       allow create: if false;
     }
 
-    match /visitors/{docId} {
-      allow read, create, update: if true;
+    // 来店者カウンター（visitors/total）。
+    // 公開書き込みは「countを1だけ増やす」操作のみ許可し、
+    // 任意値への改ざん・水増し・余計なフィールド追加・別ドキュメント作成を防ぐ。
+    match /visitors/total {
+      allow read: if true;
+      // 初回作成: countフィールドのみ・値は1
+      allow create: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count == 1;
+      // 更新: countを厳密に +1 する操作だけ許可（increment(1) 相当）
+      allow update: if request.resource.data.keys().hasOnly(['count'])
+                    && request.resource.data.count == resource.data.count + 1;
       allow delete: if isAdmin();
+    }
+
+    // visitors配下の total 以外は公開書き込み禁止（管理者のみ）。
+    match /visitors/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /inquiries/{inquiryId} {
       allow read: if isAdmin();
       allow update: if isAdmin();
       allow create, delete: if false;
+    }
+
+    // ウェイティングリスト（公開通知の宛先リストを兼ねる）。
+    // 誰でも登録（create）できるが、email形式・フィールド・作成時刻を厳格に検証。
+    // メールアドレスは個人情報のため、読み取り・削除は管理者のみ。
+    match /waitlist/{docId} {
+      allow read, update, delete: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['email', 'createdAt'])
+                    && request.resource.data.email is string
+                    && request.resource.data.email.size() >= 5
+                    && request.resource.data.email.size() <= 254
+                    && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+[.][^@\\s]+$')
+                    && request.resource.data.createdAt == request.time;
+    }
+
+    // 一斉メール送信の監査ログ。書き込みは Cloud Function（Admin SDK＝ルール無視）のみ。
+    // クライアントからの読み取りは管理者限定、書き込みは全面禁止。
+    match /mailLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     match /{document=**} {

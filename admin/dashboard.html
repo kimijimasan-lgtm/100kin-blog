@@ -30,9 +30,25 @@
     border: 2px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap;
   }
   header .badge { color: var(--accent); font-size: 12px; font-weight: 700; }
+  header .mobile-admin-label { display: none; }
   header nav { margin-left: auto; display: flex; gap: 18px; }
   header nav a { color: #b8d9b2; font-size: 13px; text-decoration: none; }
   header nav a:hover, header nav a.active { color: #fff; }
+
+  footer .mobile-back-link { display: none; }
+
+  /* スマホ表示時のみ: ADMINバッジ→「管理者用画面」表示、ナビ非表示、フッターの著作権表記→「直前の画面に戻す」リンク */
+  @media (max-width: 600px) {
+    header .badge { display: none; }
+    header .mobile-admin-label {
+      display: inline; color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap;
+    }
+    header nav { display: none; }
+    footer .desktop-footer-text { display: none; }
+    footer .mobile-back-link {
+      display: inline-block; color: #ffe033; font-weight: 700; font-size: 14px; text-decoration: none;
+    }
+  }
 
   .layout { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
 
@@ -85,6 +101,7 @@
 <header>
   <h1>100均アプリ</h1>
   <span class="badge">ADMIN</span>
+  <span class="mobile-admin-label">管理者用画面</span>
   <nav>
     <a href="dashboard.html" class="active">ダッシュボード</a>
     <a href="inquiries.html">問い合わせ</a>
@@ -148,7 +165,8 @@
 </div>
 
 <footer>
-  © 2026 100均アプリ — siro（管理画面）
+  <span class="desktop-footer-text">© 2026 100均アプリ — siro（管理画面）</span>
+  <a class="mobile-back-link" href="../index.html#memo-sync/detail">直前の画面に戻す</a>
 </footer>
 
 <script type="module">

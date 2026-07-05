@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>公開通知を受け取る — 100均アプリ</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+
+  header {
+    background: var(--primary); padding: 0 24px; height: 52px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  header h1 {
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.06em;
+    background: #c62828;
+    border: 3px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap;
+  }
+
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+
+  .card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 32px 28px; max-width: 440px; width: 100%;
+    box-shadow: 0 2px 16px rgba(45,90,39,0.06);
+  }
+  .card .lead-mark { font-size: 30px; margin-bottom: 10px; }
+  .card h2 { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 8px; line-height: 1.4; }
+  .card p.desc { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 22px; }
+
+  form .field { margin-bottom: 14px; }
+  form label { display: block; font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+  form input[type="email"] {
+    width: 100%; padding: 12px 14px; font-size: 15px;
+    border: 0.5px solid var(--border); border-radius: 8px;
+    font-family: inherit; background: var(--bg); color: var(--text);
+  }
+  form input[type="email"]:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .btn {
+    width: 100%; padding: 13px; border-radius: 8px; border: none;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    background: var(--accent); color: #fff;
+  }
+  .btn:hover { background: #c98910; }
+  .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .privacy { font-size: 11px; color: var(--muted); margin-top: 14px; line-height: 1.6; }
+  .spam-notice { font-size: 12px; color: #d9480f; font-weight: 700; margin-top: 8px; line-height: 1.6; }
+
+  .msg { font-size: 13px; margin-top: 16px; padding: 12px 14px; border-radius: 8px; display: none; line-height: 1.6; }
+  .msg.show { display: block; }
+  .msg.success { background: #e8f5e4; color: var(--primary); border: 0.5px solid #b8d9b2; }
+  .msg.error { background: #fdecec; color: #b3261e; border: 0.5px solid #f2c4c0; }
+
+  .done { display: none; text-align: center; }
+  .done.show { display: block; }
+  .done .check { font-size: 44px; margin-bottom: 10px; }
+  .done h2 { font-size: 19px; color: var(--primary); margin-bottom: 8px; }
+  .done p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .done a.back { display: inline-block; margin-top: 18px; color: var(--primary); font-size: 13px; font-weight: 700; text-decoration: none; }
+  .done a.back:hover { text-decoration: underline; }
+
+  footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 18px; font-size: 12px; }
+  footer a { color: #b8d9b2; text-decoration: none; }
+  footer a:hover { color: #fff; }
+  footer .back-link { display: block; margin-bottom: 8px; color: #ffe033; font-weight: 700; font-size: 15px; }
+  footer a.back-link:hover { color: #ffe033; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>100均アプリ</h1>
+</header>
+
+<main>
+  <div class="card">
+
+    <!-- 入力フォーム -->
+    <div id="formWrap">
+      <div class="lead-mark">📣</div>
+      <h2>新着アプリの公開通知を受け取る</h2>
+      <p class="desc">新しいアプリの公開や大型アップデートのお知らせを、メールでお届けします。登録は無料、いつでも配信停止できます。</p>
+
+      <form id="waitForm">
+        <div class="field">
+          <label for="email">メールアドレス</label>
+          <input type="email" id="email" placeholder="you@example.com" autocomplete="email" required>
+        </div>
+        <button type="submit" class="btn" id="submitBtn">通知を受け取る</button>
+        <p class="privacy">※ ご登録のアドレスは公開通知の送信にのみ利用し、第三者に提供しません。</p>
+        <p class="spam-notice">⚠ メールが届かない場合は迷惑メール設定を見直してください</p>
+        <div class="msg error" id="errMsg"></div>
+      </form>
+    </div>
+
+    <!-- 完了表示 -->
+    <div class="done" id="doneWrap">
+      <div class="check">✅</div>
+      <h2>登録が完了しました</h2>
+      <p>新しいアプリの公開時にお知らせします。<br>ご登録ありがとうございます！</p>
+      <a class="back" href="index.html">サイトに戻る →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <a class="back-link" href="javascript:void(0)" id="backLink">← 直前の画面に戻る</a>
+  © 2026 100均アプリ — siro　<a href="mailto:apps100kin@gmail.com">開発者への問合せ</a>
+</footer>
+
+<script type="module">
+  import { db } from "./firebase-config.js";
+  import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const form = document.getElementById('waitForm');
+  const emailInput = document.getElementById('email');
+  const submitBtn = document.getElementById('submitBtn');
+  const errMsg = document.getElementById('errMsg');
+  const formWrap = document.getElementById('formWrap');
+  const doneWrap = document.getElementById('doneWrap');
+
+  document.getElementById('backLink').addEventListener('click', () => history.back());
+
+  // ルール側の正規表現と揃えた簡易チェック
+  const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+  function showError(text) {
+    errMsg.textContent = text;
+    errMsg.classList.add('show');
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errMsg.classList.remove('show');
+    const email = emailInput.value.trim().toLowerCase();
+
+    if (!EMAIL_RE.test(email) || email.length < 5 || email.length > 254) {
+      showError('メールアドレスの形式が正しくないようです。ご確認ください。');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '送信中…';
+    try {
+      await addDoc(collection(db, 'waitlist'), {
+        email,
+        createdAt: serverTimestamp(),
+      });
+      // 完了表示に切替
+      formWrap.style.display = 'none';
+      doneWrap.classList.add('show');
+    } catch (err) {
+      showError('登録に失敗しました。時間をおいて再度お試しください。');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '通知を受け取る';
+    }
+  });
+</script>
+
+</body>
+</html>

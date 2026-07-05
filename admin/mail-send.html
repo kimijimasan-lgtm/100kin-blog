@@ -30,9 +30,25 @@
     border: 2px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap;
   }
   header .badge { color: var(--accent); font-size: 12px; font-weight: 700; }
+  header .mobile-admin-label { display: none; }
   header nav { margin-left: auto; display: flex; gap: 18px; }
   header nav a { color: #b8d9b2; font-size: 13px; text-decoration: none; }
   header nav a:hover, header nav a.active { color: #fff; }
+
+  footer .mobile-back-link { display: none; }
+
+  /* スマホ表示時のみ: ADMINバッジ→「管理者用画面」表示、ナビ非表示、フッターの著作権表記→「直前の画面に戻す」リンク */
+  @media (max-width: 600px) {
+    header .badge { display: none; }
+    header .mobile-admin-label {
+      display: inline; color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap;
+    }
+    header nav { display: none; }
+    footer .desktop-footer-text { display: none; }
+    footer .mobile-back-link {
+      display: inline-block; color: #ffe033; font-weight: 700; font-size: 14px; text-decoration: none;
+    }
+  }
 
   .layout { max-width: 700px; margin: 0 auto; padding: 32px 24px 60px; }
 
@@ -70,6 +86,7 @@
   .status-msg { font-size: 13px; margin-top: 14px; padding: 10px 12px; border-radius: 8px; display: none; }
   .status-msg.show { display: block; }
   .status-msg.success { background: #e8f5e4; color: var(--primary); border: 0.5px solid #b8d9b2; }
+  .status-msg.error { background: #fdecec; color: #b3261e; border: 0.5px solid #f2c4c0; }
 
   footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 20px; font-size: 12px; }
 </style>
@@ -79,6 +96,7 @@
 <header>
   <h1>100均アプリ</h1>
   <span class="badge">ADMIN</span>
+  <span class="mobile-admin-label">管理者用画面</span>
   <nav>
     <a href="dashboard.html">ダッシュボード</a>
     <a href="inquiries.html">問い合わせ</a>
@@ -91,18 +109,13 @@
 <div class="layout" id="layout" style="display:none;">
 
   <p class="page-title">一斉メール送信</p>
-  <p class="page-sub">購入済みユーザーのメールアドレスへ一括で通知を送ります</p>
-  <p style="font-size:11px; color:var(--muted); margin:-12px 0 20px;">※ 送信先件数はStripe購入記録の集計が未実装のため、現状ダミー値のままです（Firestore未接続）</p>
+  <p class="page-sub">ウェイティングリスト登録者のメールアドレスへ一括で通知を送ります</p>
 
   <div class="form-card">
     <form id="mailForm">
       <div class="field">
         <label>送信先</label>
-        <select id="audience">
-          <option value="purchasers">購入済みユーザー全員（<span id="countPurchasers">42</span>件）</option>
-          <option value="all">購入済み＋ゲスト全員</option>
-        </select>
-        <p class="hint">送信予定件数: <span class="recipient-count" id="recipientCount">42件</span></p>
+        <p class="hint">ウェイティングリスト登録者 全員: <span class="recipient-count" id="recipientCount">読み込み中…</span></p>
       </div>
 
       <div class="field">
@@ -113,10 +126,18 @@
       <div class="field">
         <label>本文</label>
         <textarea id="body" placeholder="本文を入力してください" required></textarea>
-        <p class="hint">送信元: apps100kin@gmail.com（Firebase Functions + Resend経由）</p>
+        <p class="hint">送信元: kimijimasan@gmail.com（Firebase Functions + SendGrid経由）</p>
       </div>
 
-      <button type="submit" class="btn">この内容で送信する</button>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:16px; cursor:pointer; color:var(--text);">
+        <input type="checkbox" id="testMode" checked style="width:auto; margin:0;">
+        テスト送信（専用窓口だけに送る: apps100kin@gmail.com）
+      </label>
+      <p style="font-size:11px; color:var(--muted); margin:-10px 0 16px;">
+        ※ チェックを外すと、ウェイティングリスト登録者<strong>全員</strong>に送信されます。
+      </p>
+
+      <button type="submit" class="btn" id="sendBtn">この内容で送信する</button>
       <div class="status-msg success" id="statusMsg"></div>
     </form>
   </div>
@@ -124,14 +145,33 @@
 </div>
 
 <footer>
-  © 2026 100均アプリ — siro（管理画面）
+  <span class="desktop-footer-text">© 2026 100均アプリ — siro（管理画面）</span>
+  <a class="mobile-back-link" href="../index.html#memo-sync/detail">直前の画面に戻す</a>
 </footer>
 
 <script type="module">
-  import { auth } from "../firebase-config.js";
+  import { app, auth, db } from "../firebase-config.js";
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+  import { collection, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
   const ADMIN_EMAIL = "kimijimasan@gmail.com";
+  const TEST_RECIPIENT_EMAIL = "apps100kin@gmail.com";
+  const functions = getFunctions(app, "asia-northeast1");
+  const sendBulkMail = httpsCallable(functions, "sendBulkMail");
+  const recipientCount = document.getElementById('recipientCount');
+
+  // ウェイティングリストの登録件数を取得して表示（管理者認証が必要なので認証後に呼ぶ）
+  async function loadRecipientCount() {
+    try {
+      const snap = await getCountFromServer(collection(db, 'waitlist'));
+      const n = snap.data().count;
+      recipientCount.textContent = n + '件';
+      recipientCount.dataset.count = n;
+    } catch (e) {
+      recipientCount.textContent = '取得失敗';
+    }
+  }
 
   document.getElementById('logoutLink').addEventListener('click', async (e) => {
     e.preventDefault();
@@ -145,22 +185,39 @@
       return;
     }
     document.getElementById('layout').style.display = '';
+    loadRecipientCount();
   });
 
-  const audienceSel = document.getElementById('audience');
-  const recipientCount = document.getElementById('recipientCount');
-  const counts = { purchasers: 42, all: 360 };
-
-  audienceSel.addEventListener('change', () => {
-    recipientCount.textContent = counts[audienceSel.value] + '件';
-  });
-
-  document.getElementById('mailForm').addEventListener('submit', (e) => {
+  document.getElementById('mailForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    // TODO: Firebase Functions 経由で Resend/SendGrid に送信処理を実装する
     const status = document.getElementById('statusMsg');
-    status.textContent = `送信を受け付けました（${recipientCount.textContent}）。実際の送信にはFirebase Functions連携が必要です。`;
-    status.classList.add('show');
+    const btn = document.getElementById('sendBtn');
+    const subject = document.getElementById('subject').value.trim();
+    const body = document.getElementById('body').value.trim();
+    const testMode = document.getElementById('testMode').checked;
+
+    // 本番送信（全員）は誤送信防止の確認を挟む
+    if (!testMode) {
+      const cnt = recipientCount.dataset.count ?? '?';
+      if (!confirm(`ウェイティングリスト登録者 ${cnt}件 全員に送信します。よろしいですか？`)) return;
+    }
+
+    status.className = 'status-msg';
+    btn.disabled = true;
+    btn.textContent = '送信中…';
+    try {
+      const res = await sendBulkMail({ subject, body, test: testMode });
+      status.textContent = res.data.test
+        ? `テスト送信しました（${TEST_RECIPIENT_EMAIL} 宛 ${res.data.sent}件）。受信トレイをご確認ください。`
+        : `送信しました（ウェイティングリスト登録者 ${res.data.sent}件）。`;
+      status.classList.add('success', 'show');
+    } catch (err) {
+      status.textContent = `送信に失敗しました: ${err.message || err}`;
+      status.classList.add('error', 'show');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'この内容で送信する';
+    }
   });
 </script>
 

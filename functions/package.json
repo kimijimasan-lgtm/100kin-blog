@@ -1,0 +1,14 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for 100均アプリ（一斉メール送信）",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.4",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1"
+  }
+}
