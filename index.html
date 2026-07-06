@@ -709,7 +709,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-06b';
+  const BUILD_TAG = 'v2026-07-06c';
 
   const FOOTER_HTML = `
     <footer>
@@ -774,7 +774,7 @@
 
   function detailSectionsHtml(app, reviews) {
     const avg = reviews.length
-      ? (reviews.reduce((s, r) => s + (r.stars || 0), 0) / reviews.length).toFixed(1)
+      ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length).toFixed(1)
       : null;
     return `
       <div class="section-divider">詳 細 ・ 購 入</div>
@@ -886,11 +886,13 @@
       <div class="review-stars"></div>
       <p class="review-text"></p>
     `;
-    card.querySelector('.avatar').textContent = (r.author || '?').charAt(0);
-    card.querySelector('.reviewer').textContent = r.author || '';
-    card.querySelector('.review-meta').textContent = r.date || '';
-    card.querySelector('.review-stars').textContent = starString(r.stars);
-    card.querySelector('.review-text').textContent = r.text || '';
+    const dateText = (r.createdAt && typeof r.createdAt.toDate === 'function')
+      ? r.createdAt.toDate().toLocaleDateString('ja-JP') : '';
+    card.querySelector('.avatar').textContent = (r.name || '?').charAt(0);
+    card.querySelector('.reviewer').textContent = r.name || '';
+    card.querySelector('.review-meta').textContent = dateText;
+    card.querySelector('.review-stars').textContent = starString(r.rating);
+    card.querySelector('.review-text').textContent = r.comment || '';
     return card;
   }
 
@@ -978,7 +980,9 @@
     const reviewsBlock = modal.querySelector('.reviews-block');
     const scrollToReviews = () => reviewsBlock?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     modal.querySelector('.review-link')?.addEventListener('click', scrollToReviews);
-    modal.querySelector('.review-post-link')?.addEventListener('click', scrollToReviews);
+    modal.querySelector('.review-post-link')?.addEventListener('click', () => {
+      location.href = `review.html?app=${encodeURIComponent(modal.dataset.appId)}`;
+    });
     modal.querySelector('.view-all-btn')?.addEventListener('click', () => {
       modal.querySelector('.all-reviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -1125,14 +1129,14 @@
         return;
       }
 
-      // 各アプリの公開レビューを並列取得
+      // 各アプリの承認済みレビューを並列取得
       const reviewSnaps = await Promise.all(
-        apps.map(app => getDocs(query(collection(db, 'apps', app.id, 'reviews'), where('hidden', '==', false))))
+        apps.map(app => getDocs(query(collection(db, 'apps', app.id, 'reviews'), where('approved', '==', true))))
       );
       const items = apps.map((app, i) => {
         const reviews = [];
         reviewSnaps[i].forEach(r => reviews.push(r.data()));
-        reviews.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        reviews.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
         return { app, reviews, slides: slidesFor(app) };
       });
 

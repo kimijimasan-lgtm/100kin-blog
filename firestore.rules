@@ -12,10 +12,24 @@ service cloud.firestore {
       allow read: if resource.data.published == true || isAdmin();
       allow write: if isAdmin();
 
+      // レビュー投稿。誰でも登録（create）できるが、name/rating/comment/createdAt/approved
+      // の5フィールドのみに限定し、評価は1〜5の整数・文字数を厳格に検証。
+      // 承認済み（approved==true）のみ全員read可、未承認の閲覧・更新・削除は管理者のみ。
       match /reviews/{reviewId} {
-        allow read: if resource.data.hidden == false || isAdmin();
+        allow read: if resource.data.approved == true || isAdmin();
         allow update, delete: if isAdmin();
-        allow create: if false;
+        allow create: if request.resource.data.keys().hasOnly(['name', 'rating', 'comment', 'createdAt', 'approved'])
+                      && request.resource.data.name is string
+                      && request.resource.data.name.size() >= 1
+                      && request.resource.data.name.size() <= 50
+                      && request.resource.data.rating is int
+                      && request.resource.data.rating >= 1
+                      && request.resource.data.rating <= 5
+                      && request.resource.data.comment is string
+                      && request.resource.data.comment.size() >= 1
+                      && request.resource.data.comment.size() <= 1000
+                      && request.resource.data.createdAt == request.time
+                      && request.resource.data.approved == false;
       }
     }
 

@@ -87,7 +87,7 @@
     background: var(--surface); border: 0.5px solid var(--border);
     border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
   }
-  .review-card.hidden-review { opacity: 0.55; }
+  .review-card.pending-review { opacity: 0.7; }
   .review-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
   .review-stars { color: var(--accent); font-size: 14px; }
   .review-user { font-size: 13px; font-weight: 700; }
@@ -97,9 +97,9 @@
     background: #fbe3e0; color: #b5392f; font-size: 11px; font-weight: 700;
     border-radius: 6px; padding: 2px 8px;
   }
-  .hidden-badge {
-    background: var(--bg); color: var(--muted); font-size: 11px; font-weight: 700;
-    border: 0.5px solid var(--border); border-radius: 6px; padding: 2px 8px;
+  .pending-badge {
+    background: #fdf6e8; color: #7a5c10; font-size: 11px; font-weight: 700;
+    border: 0.5px solid #e8c878; border-radius: 6px; padding: 2px 8px;
   }
   .review-comment { font-size: 13px; line-height: 1.7; margin-bottom: 10px; }
   .review-actions { display: flex; gap: 8px; }
@@ -107,8 +107,8 @@
     font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer;
     border: 0.5px solid var(--border); background: var(--bg); color: var(--text);
   }
-  .review-actions button.btn-hide { color: #7a5c10; border-color: #e8c878; background: #fdf6e8; }
-  .review-actions button.btn-restore { color: var(--primary); border-color: #b8d9b2; background: #e8f5e4; }
+  .review-actions button.btn-approve { color: var(--primary); border-color: #b8d9b2; background: #e8f5e4; }
+  .review-actions button.btn-unapprove { color: #7a5c10; border-color: #e8c878; background: #fdf6e8; }
   .review-actions button.btn-delete { color: #b5392f; border-color: #f0bdb6; background: #fbe3e0; }
 
   footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 20px; font-size: 12px; }
@@ -137,12 +137,12 @@
   <div id="inquiryList"></div>
 
   <p class="section-title">レビュー管理</p>
-  <p class="page-sub">星1〜2のレビューには「要確認」バッジが自動表示されます。まず非表示にして、必要なら復元できます。</p>
+  <p class="page-sub">サイトから投稿されたレビューは未承認のまま届きます。内容を確認し、問題なければ「承認する」を押すと公開されます。星1〜2のレビューには「要確認」バッジが自動表示されます。</p>
 
   <div class="filter-row">
     <div class="filter-btn active" data-review-filter="all">すべて</div>
+    <div class="filter-btn" data-review-filter="pending">承認待ちのみ</div>
     <div class="filter-btn" data-review-filter="flagged">要確認のみ</div>
-    <div class="filter-btn" data-review-filter="hidden">非表示のみ</div>
   </div>
 
   <div id="reviewList"></div>
@@ -232,28 +232,28 @@
   function renderReviews() {
     let items = reviews;
     if (reviewFilter === 'flagged') {
-      items = reviews.filter(r => r.stars <= 2);
-    } else if (reviewFilter === 'hidden') {
-      items = reviews.filter(r => r.hidden);
+      items = reviews.filter(r => r.rating <= 2);
+    } else if (reviewFilter === 'pending') {
+      items = reviews.filter(r => !r.approved);
     }
 
     reviewListEl.innerHTML = items.map(r => {
-      const flagged = r.stars <= 2;
+      const flagged = r.rating <= 2;
       return `
-      <div class="review-card ${r.hidden ? 'hidden-review' : ''}">
+      <div class="review-card ${!r.approved ? 'pending-review' : ''}">
         <div class="review-head">
-          <span class="review-stars">${starString(r.stars)}</span>
-          <span class="review-user">${r.author}</span>
-          <span class="review-app">／ ${r.appName}</span>
+          <span class="review-stars">${starString(r.rating)}</span>
+          <span class="review-user">${esc(r.name)}</span>
+          <span class="review-app">／ ${esc(r.appName)}</span>
           ${flagged ? '<span class="flag-badge">要確認</span>' : ''}
-          ${r.hidden ? '<span class="hidden-badge">非表示中</span>' : ''}
-          <span class="review-meta">${r.date}</span>
+          ${!r.approved ? '<span class="pending-badge">承認待ち</span>' : ''}
+          <span class="review-meta">${esc(formatDate(r.createdAt))}</span>
         </div>
-        <p class="review-comment">${r.text}</p>
+        <p class="review-comment">${esc(r.comment)}</p>
         <div class="review-actions">
-          ${r.hidden
-            ? `<button class="btn-restore" data-action="restore" data-app="${r.appId}" data-id="${r.id}">復元する</button>`
-            : `<button class="btn-hide" data-action="hide" data-app="${r.appId}" data-id="${r.id}">非表示にする</button>`}
+          ${!r.approved
+            ? `<button class="btn-approve" data-action="approve" data-app="${r.appId}" data-id="${r.id}">承認する</button>`
+            : `<button class="btn-unapprove" data-action="unapprove" data-app="${r.appId}" data-id="${r.id}">取り下げる</button>`}
           <button class="btn-delete" data-action="delete" data-app="${r.appId}" data-id="${r.id}">削除する</button>
         </div>
       </div>
@@ -268,14 +268,14 @@
     const ref = doc(db, 'apps', appId, 'reviews', id);
 
     try {
-      if (action === 'hide') {
-        await updateDoc(ref, { hidden: true });
-        reviews.find(r => r.appId === appId && r.id === id).hidden = true;
-      } else if (action === 'restore') {
-        await updateDoc(ref, { hidden: false });
-        reviews.find(r => r.appId === appId && r.id === id).hidden = false;
+      if (action === 'approve') {
+        await updateDoc(ref, { approved: true });
+        reviews.find(r => r.appId === appId && r.id === id).approved = true;
+      } else if (action === 'unapprove') {
+        await updateDoc(ref, { approved: false });
+        reviews.find(r => r.appId === appId && r.id === id).approved = false;
       } else if (action === 'delete') {
-        if (!confirm('このレビューを削除します。削除すると復元できません。よろしいですか？\n（先に「非表示にする」を使うことをおすすめします）')) return;
+        if (!confirm('このレビューを削除します。削除すると復元できません。よろしいですか？')) return;
         await deleteDoc(ref);
         reviews = reviews.filter(r => !(r.appId === appId && r.id === id));
       }

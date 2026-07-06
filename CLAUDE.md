@@ -2,7 +2,41 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-07-06（開発者への問合せをmailtoからFirestore経由に変更。詳細は「0-4. 開発者への問合せのFirestore化」参照）
+最終更新: 2026-07-06（アプリのレビュー投稿機能を実装。詳細は「0-5. レビュー投稿機能の実装」参照）
+
+---
+
+## 0-5. レビュー投稿機能の実装（2026-07-06）
+
+**背景:** 詳細ページの「アプリのレビューを投稿する↓」はレビュー一覧へのスクロールリンクのみで、実際の投稿機能が無かった。表示されていた「けんと」「なっちゃん」「マユミーヌ」等はダミーではなく、**既存の`apps/{appId}/reviews`サブコレクション**（2026-06-23の管理画面実装時に投入された実データ、`author`/`stars`/`text`/`date`/`hidden`という旧スキーマ）だった。
+
+**設計判断（重要）:** ユーザーは当初「新しいreviewsコレクション」を想定していたが、調査の結果、既存の`apps/{appId}/reviews`サブコレクションと`admin/inquiries.html`のレビュー管理UI（承認・却下・削除に相当する非表示/復元/削除機能）が既に存在すると判明。二重の管理系統を避けるため、**新規コレクションを作らず既存サブコレクションのスキーマを刷新する方針**をユーザーに確認の上で採用（`author`/`stars`/`text`/`date`/`hidden` → `name`/`rating`/`comment`/`createdAt`/`approved`）。`hidden`（デフォルト公開・問題があれば隠す）から`approved`（デフォルト非公開・確認後に公開する事前承認制）へモデルを反転。
+
+**新規ファイル:** `review.html`（waitlist.html/contact.htmlと同構成）。URLクエリ`?app=<appId>`で対象アプリを指定（省略時`memo-sync`）。フィールドはお名前・評価（★1〜5のクリック式ピッカー）・レビュー内容。送信で`apps/{appId}/reviews`に`{name, rating, comment, createdAt: serverTimestamp(), approved: false}`を`addDoc`。
+
+**index.html の変更:**
+- レビュー取得クエリを`where('hidden','==',false)`→`where('approved','==',true)`に変更、ソートも`date`文字列→`createdAt`（Timestamp）に変更
+- `detailSectionsHtml`の平均評価計算・`buildReviewCard`の表示フィールドを新スキーマ（`rating`/`name`/`comment`/`createdAt`）に対応
+- 「アプリのレビューを投稿する↓」(`.review-post-link`)のクリック動作を、レビュー欄へのスクロールから`review.html?app=<appId>`への遷移に変更（`.review-link`＝件数リンクのスクロール動作はそのまま維持）
+
+**firestore.rules:** `apps/{appId}/reviews/{reviewId}`のcreateを「誰でも可・ただしname/rating/comment/createdAt/approvedの5フィールドのみ、rating は1〜5の整数、name≤50文字、comment 1〜1000文字、`approved`は必ず`false`で送信」に変更。readは`approved==true`または管理者のみ。update/deleteは管理者のみ（変更なし）。
+
+**admin/inquiries.html のレビュー管理UI刷新:**
+- フィールド表示を新スキーマに対応（`esc()`で新たにHTMLエスケープ — 問い合わせと同様、匿名の第三者が自由入力できるデータのため）
+- 「非表示にする/復元する」→「承認する/取り下げる」に意味を反転（`hidden`→`approved`のトグル）。「非表示のみ」フィルタ→「承認待ちのみ」フィルタに変更
+- CSSクラスも`.hidden-review`/`.hidden-badge`/`.btn-hide`/`.btn-restore`→`.pending-review`/`.pending-badge`/`.btn-approve`/`.btn-unapprove`にリネーム
+
+**旧データのクリーンアップ（2026-07-06実施）:** 新スキーマと非互換な旧`author`/`stars`/`text`/`date`/`hidden`形式のドキュメントを全削除（一時的なルール緩和→削除→即復元の手順、承認済み記載と同じ手法）。削除したのは`apps/memo-sync/reviews`の`review-1`（なっちゃん）・`review-2`（マユミーヌ）・`review-3`（けんと）・`review-5`（あゆ、荒らし想定の非表示テスト）、`apps/diabetes-counter/reviews`の`review-4`（ひろき）の計5件。現在すべてのアプリでレビュー0件からスタート。
+
+**動作確認（2026-07-06、Chrome実機・ローカルサーバーhttp://localhost:8081）:**
+1. `review.html?app=memo-sync`から`<script>`タグを含むテスト投稿（★4、名前「なっちゃんテスト」）→ Firestoreに`name`/`rating`/`comment`/`createdAt`/`approved:false`の5フィールドのみで保存されることを確認
+2. 承認前は公開クエリ（`where('approved','==',true)`）で0件、すなわち公開画面に表示されないことを確認
+3. 管理画面（一時的に認証ガード・関連読み取りルールを緩和して検証、確認後ただちに復元）で「承認待ち」バッジ付きで正しく表示、`<script>`タグはエスケープされ実行されないことを確認。「承認する」ボタンで`approved:true`に更新されることを確認
+4. 承認後、公開画面（詳細モーダルのカスタマーレビュー欄）に反映され、「★4.0 / 1件」の平均評価・件数が実データから動的に計算されることを確認
+5. 「アプリのレビューを投稿する↓」タップで`review.html?app=memo-sync`に正しく遷移することを確認
+6. テストレビューは公開情報のため確認後に削除（ユーザー承認済み）。本番Firestoreルール・Hostingへデプロイ済み
+
+**残作業:** 2作目公開時は`review.html`のデフォルトappId（`memo-sync`）が引き続き妥当か確認すること（URLパラメータを省略した投稿はmemo-sync宛てになる）。
 
 ---
 
@@ -222,15 +256,20 @@ index.html を「アプリ1つ＝横1ページ」のページャ構成に全面�
 ├── index.html           ← ホーム画面＋詳細ページ統合（2軸スナップ・本番）
 ├── app-detail.html      ← 転送用スタブ（?app=xxx → index.html#xxx/detail へリダイレクト）
 ├── login.html           ← ゲスト／購入ログイン選択（実装済み・本番）
+├── waitlist.html        ← 次回作の公開通知登録（Firestore `waitlist` に保存、本番稼働）
+├── contact.html         ← 開発者への問合せフォーム（Firestore `inquiries` に保存、本番稼働。2026-07-06追加）
+├── review.html          ← アプリのレビュー投稿フォーム（Firestore `apps/{appId}/reviews` に保存、本番稼働。2026-07-06追加）
+├── firestore.rules      ← Firestoreセキュリティルール
+├── firebase-config.js   ← Firebase SDK設定（各ページから読み込み）
 ├── save.bat             ← git add/commit/push を自動実行するスクリプト
 ├── admin/
-│   ├── dashboard.html   ← 管理ダッシュボード（実装済み・静的モック）
-│   ├── inquiries.html   ← 問い合わせ一覧＋レビュー管理（実装済み・静的モック）
-│   └── mail-send.html   ← 一斉メール送信フォーム（実装済み・静的モック、送信は未接続）
+│   ├── dashboard.html   ← 管理ダッシュボード（Firestore接続済み・本番稼働）
+│   ├── inquiries.html   ← 問い合わせ一覧＋レビュー承認管理（Firestore接続済み・本番稼働）
+│   └── mail-send.html   ← 一斉メール送信フォーム（Firebase Functions + SendGridで実送信・本番稼働）
 └── src/                 ← 旧版（6/13時点のバックアップ。本番は使っていない）
 ```
 
-`index.html` / `app-detail.html` / `login.html` がルート直下にあるものが現行の本番ファイル。`src/` 配下は初期バックアップで更新が止まっている。
+`src/` 配下は初期バックアップで更新が止まっているファイル群。編集対象は常にルート直下・`admin/`配下の本番ファイル。
 
 ---
 

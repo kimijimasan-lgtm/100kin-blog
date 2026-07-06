@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アプリのレビューを投稿 — 100均アプリ</title>
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --primary: #2d5a27;
+    --accent: #e8a020;
+    --text: #1a1a18;
+    --muted: #6b6b66;
+    --border: #e0ddd6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+
+  header {
+    background: var(--primary); padding: 0 24px; height: 52px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  header h1 {
+    color: #fff; font-size: 15px; font-weight: 700; letter-spacing: 0.06em;
+    background: #c62828;
+    border: 3px solid #fff; padding: 3px 12px; border-radius: 6px; white-space: nowrap;
+  }
+
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+
+  .card {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: var(--radius); padding: 32px 28px; max-width: 440px; width: 100%;
+    box-shadow: 0 2px 16px rgba(45,90,39,0.06);
+  }
+  .card .lead-mark { font-size: 30px; margin-bottom: 10px; }
+  .card h2 { font-size: 18px; font-weight: 700; color: var(--primary); margin-bottom: 8px; line-height: 1.4; }
+  .card p.desc { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 22px; }
+
+  form .field { margin-bottom: 14px; }
+  form label { display: block; font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+  form input[type="text"],
+  form textarea {
+    width: 100%; padding: 12px 14px; font-size: 15px;
+    border: 0.5px solid var(--border); border-radius: 8px;
+    font-family: inherit; background: var(--bg); color: var(--text);
+  }
+  form textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+  form input[type="text"]:focus,
+  form textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  .rating-picker { display: flex; gap: 6px; }
+  .rating-picker button {
+    background: none; border: none; cursor: pointer; padding: 2px;
+    font-size: 32px; line-height: 1; color: var(--border);
+  }
+  .rating-picker button.filled { color: var(--accent); }
+
+  .btn {
+    width: 100%; padding: 13px; border-radius: 8px; border: none;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    background: var(--accent); color: #fff;
+  }
+  .btn:hover { background: #c98910; }
+  .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  .privacy { font-size: 11px; color: var(--muted); margin-top: 14px; line-height: 1.6; }
+
+  .msg { font-size: 13px; margin-top: 16px; padding: 12px 14px; border-radius: 8px; display: none; line-height: 1.6; }
+  .msg.show { display: block; }
+  .msg.error { background: #fdecec; color: #b3261e; border: 0.5px solid #f2c4c0; }
+
+  .done { display: none; text-align: center; }
+  .done.show { display: block; }
+  .done .check { font-size: 44px; margin-bottom: 10px; }
+  .done h2 { font-size: 19px; color: var(--primary); margin-bottom: 8px; }
+  .done p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .done a.back { display: inline-block; margin-top: 18px; color: var(--primary); font-size: 13px; font-weight: 700; text-decoration: none; }
+  .done a.back:hover { text-decoration: underline; }
+
+  footer { background: var(--primary); color: #b8d9b2; text-align: center; padding: 18px; font-size: 12px; }
+  footer a { color: #b8d9b2; text-decoration: none; }
+  footer a:hover { color: #fff; }
+  footer .back-link { display: block; margin-bottom: 8px; color: #ffe033; font-weight: 700; font-size: 15px; }
+  footer a.back-link:hover { color: #ffe033; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>100均アプリ</h1>
+</header>
+
+<main>
+  <div class="card">
+
+    <!-- 入力フォーム -->
+    <div id="formWrap">
+      <div class="lead-mark">⭐</div>
+      <h2>アプリのレビューを投稿</h2>
+      <p class="desc">ご利用の感想をぜひお聞かせください。内容を確認の上、掲載いたします。</p>
+
+      <form id="reviewForm">
+        <div class="field">
+          <label for="name">お名前（ニックネーム可）</label>
+          <input type="text" id="name" placeholder="なっちゃん" autocomplete="off" required maxlength="50">
+        </div>
+        <div class="field">
+          <label>評価</label>
+          <div class="rating-picker" id="ratingPicker" role="radiogroup" aria-label="評価（1〜5）">
+            <button type="button" data-value="1" aria-label="星1つ">★</button>
+            <button type="button" data-value="2" aria-label="星2つ">★</button>
+            <button type="button" data-value="3" aria-label="星3つ">★</button>
+            <button type="button" data-value="4" aria-label="星4つ">★</button>
+            <button type="button" data-value="5" aria-label="星5つ">★</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="comment">レビュー内容</label>
+          <textarea id="comment" placeholder="使ってみた感想をご記入ください" required maxlength="1000"></textarea>
+        </div>
+        <button type="submit" class="btn" id="submitBtn">投稿する</button>
+        <p class="privacy">※ 投稿内容は確認の上、問題なければ掲載されます。掲載までお時間をいただく場合があります。</p>
+        <div class="msg error" id="errMsg"></div>
+      </form>
+    </div>
+
+    <!-- 完了表示 -->
+    <div class="done" id="doneWrap">
+      <div class="check">✅</div>
+      <h2>投稿ありがとうございます</h2>
+      <p>内容を確認の上、問題なければサイトに掲載いたします。<br>今しばらくお待ちください。</p>
+      <a class="back" id="doneBackLink" href="index.html">サイトに戻る →</a>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <a class="back-link" href="javascript:void(0)" id="backLink">← 直前の画面に戻る</a>
+  © 2026 100均アプリ — siro
+</footer>
+
+<script type="module">
+  import { db } from "./firebase-config.js";
+  import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  const params = new URLSearchParams(location.search);
+  const appId = params.get('app') || 'memo-sync';
+
+  const form = document.getElementById('reviewForm');
+  const nameInput = document.getElementById('name');
+  const commentInput = document.getElementById('comment');
+  const ratingPicker = document.getElementById('ratingPicker');
+  const submitBtn = document.getElementById('submitBtn');
+  const errMsg = document.getElementById('errMsg');
+  const formWrap = document.getElementById('formWrap');
+  const doneWrap = document.getElementById('doneWrap');
+
+  document.getElementById('backLink').addEventListener('click', () => history.back());
+  document.getElementById('doneBackLink').href = `index.html#${appId}/detail`;
+
+  let rating = 0;
+  function renderRating() {
+    ratingPicker.querySelectorAll('button').forEach(btn => {
+      btn.classList.toggle('filled', Number(btn.dataset.value) <= rating);
+    });
+  }
+  ratingPicker.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-value]');
+    if (!btn) return;
+    rating = Number(btn.dataset.value);
+    renderRating();
+  });
+
+  function showError(text) {
+    errMsg.textContent = text;
+    errMsg.classList.add('show');
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errMsg.classList.remove('show');
+    const name = nameInput.value.trim();
+    const comment = commentInput.value.trim();
+
+    if (!name || name.length > 50) {
+      showError('お名前をご入力ください（50文字以内）。');
+      return;
+    }
+    if (rating < 1 || rating > 5) {
+      showError('評価を選択してください。');
+      return;
+    }
+    if (!comment || comment.length > 1000) {
+      showError('レビュー内容をご入力ください（1000文字以内）。');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = '投稿中…';
+    try {
+      await addDoc(collection(db, 'apps', appId, 'reviews'), {
+        name,
+        rating,
+        comment,
+        createdAt: serverTimestamp(),
+        approved: false,
+      });
+      // 完了表示に切替
+      formWrap.style.display = 'none';
+      doneWrap.classList.add('show');
+    } catch (err) {
+      showError('投稿に失敗しました。時間をおいて再度お試しください。');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '投稿する';
+    }
+  });
+</script>
+
+</body>
+</html>
