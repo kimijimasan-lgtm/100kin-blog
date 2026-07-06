@@ -82,7 +82,8 @@
     font-weight: 700;
     line-height: 1.6;
     color: var(--muted);
-    padding: 8px 16px 8px 28px;
+    /* 左paddingは58px（#prevBtnの円が left:6px 幅44px=右端50pxまで張り出すため、8px余白を足した値） */
+    padding: 8px 16px 8px 58px;
     background: var(--bg);
     flex: 0 0 auto;
   }
@@ -708,7 +709,7 @@
   }
 
   // 表示中のバージョン確認用（反映トラブル調査時にフッター右下の表記を見る）
-  const BUILD_TAG = 'v2026-07-06a';
+  const BUILD_TAG = 'v2026-07-06b';
 
   const FOOTER_HTML = `
     <footer>
