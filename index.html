@@ -681,10 +681,10 @@
   // ── Firestore未設定時のcrossmemo（memo-sync）用フォールバック ──
   // apps/{id}.topImages（トップの2枚組カルーセル）
   const MEMO_SYNC_FALLBACK_IMAGES = [
-    'images/IMG_9266.PNG',
-    'images/IMG_9267.PNG',
-    'images/IMG_9268.PNG',
-    'images/IMG_9271.PNG'
+    'images/hero/img_9266.jpg',
+    'images/hero/img_9267.jpg',
+    'images/hero/img_9268.jpg',
+    'images/hero/img_9271.jpg'
   ];
   // apps/{id}.slides（詳細ビューワーの画像＋解説文）
   const MEMO_SYNC_FALLBACK_SLIDES = [
@@ -733,9 +733,9 @@
       <div class="hero-carousel">
         <div class="hero-carousel-viewport">
           <div class="hero-carousel-track">
-            ${pages.map(pair => `
+            ${pages.map((pair, j) => `
               <div class="hero-carousel-page">
-                ${pair.map(src => `<img class="hero-screenshot" src="${escapeHtml(src)}" alt="スクリーンショット">`).join('')}
+                ${pair.map(src => `<img class="hero-screenshot" src="${escapeHtml(src)}" alt="スクリーンショット"${j === 0 ? '' : ' loading="lazy"'}>`).join('')}
               </div>`).join('')}
           </div>
         </div>
