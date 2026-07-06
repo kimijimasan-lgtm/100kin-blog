@@ -65,15 +65,12 @@
   .inquiry-card {
     background: var(--surface); border: 0.5px solid var(--border);
     border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
-    cursor: pointer;
   }
-  .inquiry-card.unread { border-left: 3px solid var(--accent); }
   .inquiry-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .unread-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
   .inquiry-subject { font-size: 14px; font-weight: 700; }
   .inquiry-meta { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
   .inquiry-from { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-  .inquiry-body { font-size: 13px; line-height: 1.7; color: var(--text); }
+  .inquiry-body { font-size: 13px; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
   .inquiry-actions { margin-top: 10px; }
   .inquiry-actions a {
     font-size: 12px; color: var(--primary); text-decoration: none; margin-right: 14px;
@@ -135,12 +132,7 @@
 <div class="layout" id="layout" style="display:none;">
 
   <p class="page-title">問い合わせ一覧</p>
-  <p class="page-sub">購入ユーザーからのメッセージを時系列で表示しています</p>
-
-  <div class="filter-row">
-    <div class="filter-btn active" data-filter="all">すべて</div>
-    <div class="filter-btn" data-filter="unread">未読のみ</div>
-  </div>
+  <p class="page-sub">サイトの問い合わせフォームから届いたメッセージを新着順に表示しています</p>
 
   <div id="inquiryList"></div>
 
@@ -191,29 +183,37 @@
   // --- 問い合わせ一覧 ---
   let inquiries = [];
   const listEl = document.getElementById('inquiryList');
-  let filter = 'all';
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+  }
+
+  function formatDate(ts) {
+    if (!ts || typeof ts.toDate !== 'function') return '';
+    return ts.toDate().toLocaleString('ja-JP');
+  }
 
   function renderInquiries() {
-    const items = filter === 'unread' ? inquiries.filter(i => !i.read) : inquiries;
-    listEl.innerHTML = items.map(i => `
-      <div class="inquiry-card ${!i.read ? 'unread' : ''}">
+    listEl.innerHTML = inquiries.map(i => `
+      <div class="inquiry-card">
         <div class="inquiry-head">
-          ${!i.read ? '<span class="unread-dot"></span>' : ''}
-          <span class="inquiry-subject">${i.subject}</span>
-          <span class="inquiry-meta">${i.date}</span>
+          <span class="inquiry-subject">${esc(i.name) || '(お名前未記入)'}</span>
+          <span class="inquiry-meta">${esc(formatDate(i.createdAt))}</span>
         </div>
-        <p class="inquiry-from">${i.from}</p>
-        <p class="inquiry-body">${i.body}</p>
+        <p class="inquiry-from">${esc(i.email)}</p>
+        <p class="inquiry-body">${esc(i.message)}</p>
         <div class="inquiry-actions">
-          <a href="mailto:${i.from}?subject=Re: ${encodeURIComponent(i.subject)}">返信する</a>
+          <a href="mailto:${esc(i.email)}?subject=${encodeURIComponent('Re: 100均アプリへのお問い合わせ')}">返信する</a>
         </div>
       </div>
-    `).join('') || '<p class="page-sub">該当する問い合わせはありません</p>';
+    `).join('') || '<p class="page-sub">問い合わせはまだありません</p>';
   }
 
   async function loadInquiries() {
     try {
-      const snap = await getDocs(query(collection(db, 'inquiries'), orderBy('date', 'desc')));
+      const snap = await getDocs(query(collection(db, 'inquiries'), orderBy('createdAt', 'desc')));
       inquiries = snap.docs.map(d => d.data());
       renderInquiries();
     } catch (err) {
@@ -221,15 +221,6 @@
       listEl.innerHTML = '<p class="page-sub">読み込みに失敗しました</p>';
     }
   }
-
-  document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn[data-filter]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      filter = btn.dataset.filter;
-      renderInquiries();
-    });
-  });
 
   // --- レビュー管理 ---
   let reviews = [];

@@ -2,7 +2,33 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-07-05（ウェイティングリスト機能の本番稼働・UI調整・管理画面スマホ対応。詳細は「0-3. ウェイティングリスト機能・UI調整・管理画面スマホ対応」参照）
+最終更新: 2026-07-06（開発者への問合せをmailtoからFirestore経由に変更。詳細は「0-4. 開発者への問合せのFirestore化」参照）
+
+---
+
+## 0-4. 開発者への問合せのFirestore化（2026-07-06）
+
+**背景:** 従来「開発者への問合せ」はmailtoリンクでメールアプリを開く仕様だったため、デフォルトメールアプリ未設定の端末・SNSアプリ内ブラウザで送信できない問題があった。waitlist機能（waitlist.html→Firestore→admin/mail-send.html）と同じ構成に変更。
+
+**新規ファイル:** `contact.html`（waitlist.htmlと同じデザイン・構成の独立ページ）。フィールドはお名前（任意）・メールアドレス（必須）・問い合わせ内容（必須、複数行）。送信で `inquiries` コレクションに `{name, email, message, createdAt: serverTimestamp()}` を `addDoc`。
+
+**mailtoリンクの置き換え（3ファイル）:** `index.html`（FOOTER_HTMLテンプレート内、全ページ・詳細モーダル共通）／`login.html`（ヘッダーの`.contact`リンクと本文の`.contact-link`の2箇所）／`waitlist.html`（フッター）。いずれも `mailto:apps100kin@gmail.com` → `contact.html` に変更。`src/`配下（旧バックアップ）のmailtoは編集対象外のためそのまま。
+
+**firestore.rules:** `inquiries` の `create` を「誰でも可・ただしフィールドを `name`/`email`/`message`/`createdAt` の4つのみに限定し、email形式・文字数（name≤100、email 5〜254文字、message 1〜2000文字）・`createdAt == request.time` を検証」するルールに変更（waitlistと同じ`hasOnly`パターン）。`read`/`update`/`delete`は従来通り管理者のみ（旧ルールは`create`/`delete`とも`false`で問合せの新規保存自体が不可能だった）。
+
+**管理画面（admin/dashboard.html・admin/inquiries.html）の表示ロジック修正（重要な発見）:** 事前確認したところ、既存の管理画面は `subject`/`from`/`date`/`read` という**旧スキーマ**（2026-06-23の静的モック時代の設計、実データは一度も書き込まれたことがない）を前提にしており、新スキーマ（`name`/`email`/`message`/`createdAt`）とは連携していなかった。両ファイルの表示ロジックを新スキーマに合わせて修正:
+- `admin/dashboard.html`: 統計カード「未読の問い合わせ」（`where('read','==',false)`）→「問い合わせ件数」（単純カウント、新スキーマに`read`フィールドが存在しないため）。「最近の問い合わせ」テーブルの列を `件名/送信者/日時` → `お名前/メールアドレス/日時` に変更
+- `admin/inquiries.html`: 「未読のみ」フィルタ（`read`依存のため廃止）を削除し新着順の単純リストに変更。表示フィールドを `subject`/`from`/`date`/`body` → `name`/`email`/`createdAt`/`message` に変更。返信リンクは `mailto:${email}`
+- **セキュリティ:** 問い合わせ内容は匿名の第三者が自由入力できるデータのため、`admin/inquiries.html` に `esc()`ヘルパーを新設し表示時にHTMLエスケープ（`<script>`等の格納型XSS対策）。`admin/dashboard.html`側は元々`textContent`代入のため素で安全
+- ⚠️ **既存の注意点として発見:** Firestoreの`inquiries`コレクションに、2026-06-23頃に投入されたと見られる**旧スキーマのダミードキュメントが4件残存**（`createdAt`フィールドが無いため新しい一覧には表示されない。ダッシュボードの合計カウントには含まれるため件数がズレて見える）。実データに影響はないが、気になる場合はFirebase Consoleから手動削除を検討
+
+**動作確認（2026-07-06、Chrome実機・ローカルサーバーhttp://localhost:8081）:**
+1. Firestoreルールを本番デプロイ（`firebase deploy --only firestore:rules`、ユーザー承認済み）
+2. `contact.html` から `<script>`タグ等を含むテスト送信 → Firestoreに `name`/`email`/`message`/`createdAt` の4フィールドのみで正しく保存されることを確認（余分なフィールドはルールにより拒否される設計）
+3. 管理画面の表示確認は管理者パスワードをClaude側で扱えないため、**一時的に`inquiries`のreadルールを`if true`に緩和 → JS直読みで内容確認 → 直後に`isAdmin()`へ復元・再デプロイ**という手順（howto-v2で前例のある承認済み手順）で実施。あわせてローカルファイルの`onAuthStateChanged`ガードも一時的にコメントアウトして画面表示を確認し、確認後ただちに元に戻した（コミット前にrevert済み、本番ファイルへの反映はなし）
+4. `admin/dashboard.html`「最近の問い合わせ」・`admin/inquiries.html`一覧の両方でテスト送信内容が正しいフィールド・エスケープ済みで表示されることを確認。レビュー管理欄の「読み込みに失敗しました」は認証バイパスに伴う想定内の副作用（reviewsは引き続き`isAdmin()`必須のため）で、今回の変更とは無関係
+5. ~~テスト送信データ・旧スキーマダミーデータの削除~~ → **完了（同日）**。`inquiries`のread/deleteを一時的に`if true`へ緩和→テスト送信1件＋旧スキーマダミー4件（`inq-1`〜`inq-4`、2026-06-23頃投入）を`deleteDoc`で削除→ただちに`isAdmin()`へ復元・再デプロイ。現在`inquiries`は0件（空の状態からスタート）
+6. ~~`contact.html`のHostingデプロイ~~ → **完了（同日）**。`firebase deploy --only hosting`で本番反映済み（https://apps100kin.web.app/contact.html ）
 
 ---
 
