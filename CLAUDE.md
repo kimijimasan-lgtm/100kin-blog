@@ -2,7 +2,25 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-07-07（860-1199px幅でのhero-ctasボタン潰れを修正。詳細は「0-7. hero-ctasボタン潰れ修正」参照）
+最終更新: 2026-07-07（PWAホーム画面追加の案内モーダルを実装。詳細は「0-8. PWAホーム画面追加案内モーダル実装」参照）
+
+---
+
+## 0-8. PWAホーム画面追加案内モーダル実装（2026-07-07）
+
+**背景:** 「次回やること」6番（PWAホーム画面追加の案内モーダル実装）に着手。Safariでサイトを開いたユーザーに、ホーム画面追加の手順（共有ボタン→「ホーム画面に追加」）を案内する。
+
+**実装（`index.html`）:**
+- **表示条件の判定関数**:
+  - `isSafariBrowser()`: UAに`chrome`/`android`/`crios`(iOS Chrome)/`fxios`(iOS Firefox)/`edgios`/`opios`のいずれも含まない`safari`のみtrue（iOS Safari・macOS Safariのみ判定、他ブラウザのWebKit系UA文字列に含まれる"Safari"トークンを誤検知しない）
+  - `isStandaloneMode()`: `matchMedia('(display-mode: standalone)')` または `navigator.standalone`でホーム画面から起動済みか判定（**このプロジェクトで初めて追加した判定**。既存コードには無かった）
+- **表示制御 `initPwaGuide()`**: Safari以外・standalone起動・`localStorage['pwa-guide-shown']`既読のいずれかならreturn。該当なければ読み込みから3秒後に`#pwaGuideOverlay`を表示
+- **モーダルUI**: 画面下部からのシート型（`.pwa-guide-overlay`）。タイトル「ホーム画面に追加しよう！」、手順1（共有ボタンSVGアイコン付き）、手順2、「わかった！」ボタン。ボタン押下で`localStorage.setItem('pwa-guide-shown', '1')`して閉じる（以後表示しない）
+
+**検証:**
+- ブラウザ拡張未接続のため自動UIテストは実施できず、Node VMで4パターン（①Safari初回=表示、②standalone起動済み=非表示、③localStorage既読=非表示、④iOS Chrome=非表示）のロジックを検証、想定通り動作することを確認
+- **実機確認完了**: 開発者本人がiPhone Safariで直接確認。モーダル表示・「わかった！」で閉じる・再読み込みで非表示（既読が効いている）のすべてOKと報告あり
+- `firebase deploy --only hosting`で本番反映済み（https://apps100kin.web.app ）
 
 ---
 
@@ -461,7 +479,7 @@ index.html を「アプリ1つ＝横1ページ」のページャ構成に全面�
    - 2ページ目「開発の動機」黄色マーカーデコレーション・ボタン文言変更済み
    - `scroll-hint`のhref="#features"をJS scrollIntoViewに変更（URLハッシュ汚染防止）
 5. ~~**カルーセル1枚目の画像差し替え**~~ → **完了**（差し替え当時は`images/IMG_9266.PNG`。2026-07-07に`images/hero/img_9266.jpg`へ圧縮・移行済み。詳細は「0-6」参照）
-6. **PWAホーム画面追加の案内モーダル実装**（index.htmlへの実装はまだ未着手）
+6. ~~**PWAホーム画面追加の案内モーダル実装**~~ → **完了（2026-07-07）**（Safari限定・standalone起動時は非表示・localStorageで既読管理。実機iPhone Safariで確認済み。詳細は「0-8」参照）
 7. ~~**ゲスト制限の実装**~~ → **完了（2026-07-02、howto-v2側で実装）**
    - 実装先はメモアプリ本体 `F:\Claude学習\howto-v2`（GitHubリポジトリ `kimijimasan-lgtm/howto-v2`、GitHub Pages公開）。詳細は同ディレクトリの `CLAUDE.md`「制限・課金」セクション参照
    - 仕様: 無課金ユーザー（ゲスト・無料Googleログイン）はパネル累計3枚・カード累計7枚まで。**累計カウント方式**（削除しても枠は戻らない。RTDB `users/{uid}/stats/` に保存）。100円決済（isPremium）で無制限

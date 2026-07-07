@@ -157,6 +157,41 @@
     font-family: inherit;
   }
 
+  /* ── PWAホーム画面追加の案内モーダル ──
+     Safari（ホーム画面から起動していない場合のみ）で、ページ読み込みから
+     3秒後に1回だけ表示。共有ボタンの位置に近い画面下部にシートとして出す。 */
+  .pwa-guide-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(0,0,0,0.55);
+    display: none; align-items: flex-end; justify-content: center;
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .pwa-guide-overlay.open { display: flex; }
+  .pwa-guide-card {
+    background: var(--surface); color: var(--text);
+    border-radius: 16px; padding: 24px 20px;
+    width: 100%; max-width: 400px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+  .pwa-guide-title { font-size: 17px; font-weight: 700; text-align: center; margin-bottom: 18px; }
+  .pwa-guide-step {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 14px; line-height: 1.5; margin-bottom: 14px;
+  }
+  .pwa-guide-step-num {
+    flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .pwa-guide-icon { display: inline-block; vertical-align: -3px; color: var(--primary); }
+  .pwa-guide-btn {
+    display: block; width: 100%; padding: 13px; margin-top: 8px;
+    border-radius: 8px; border: none; background: var(--accent); color: #fff;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+  }
+  .pwa-guide-btn:hover { background: #c98910; }
+
   /* ── 前後ページ移動の固定矢印 ──
      白地（煽り文エリア）のすぐ下＝緑地（ヒーロー）の上角に配置する */
   #pagerWrap {
@@ -656,6 +691,23 @@
 </div>
 
 <div id="modalRoot"></div>
+
+<div id="pwaGuideOverlay" class="pwa-guide-overlay">
+  <div class="pwa-guide-card">
+    <p class="pwa-guide-title">ホーム画面に追加しよう！</p>
+    <div class="pwa-guide-step">
+      <span class="pwa-guide-step-num">1</span>
+      <span>下の共有ボタン
+        <svg class="pwa-guide-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v13"/><path d="M8 6l4-4 4 4"/><rect x="4" y="10" width="16" height="11" rx="2"/></svg>
+        （四角から矢印が出るアイコン）をタップ</span>
+    </div>
+    <div class="pwa-guide-step">
+      <span class="pwa-guide-step-num">2</span>
+      <span>「ホーム画面に追加」をタップ</span>
+    </div>
+    <button id="pwaGuideOkBtn" class="pwa-guide-btn" type="button">わかった！</button>
+  </div>
+</div>
 
 <script type="module">
   import { db } from "./firebase-config.js";
@@ -1225,6 +1277,31 @@
       lastLogoTap = now;
     }
   });
+
+  // ── PWAホーム画面追加の案内モーダル ──
+  // Safari実ブラウザで、まだホーム画面から起動していない場合のみ、
+  // 読み込みから3秒後に1回だけ表示する（localStorageで既読を記録）。
+  function isSafariBrowser() {
+    const ua = navigator.userAgent;
+    // Chrome/Android/CriOS(iOS Chrome)/FxiOS(iOS Firefox)/EdgiOS/OPiOS は
+    // すべてUAに"Safari"を含むため除外した上で判定する
+    return /^((?!chrome|android|crios|fxios|edgios|opios).)*safari/i.test(ua);
+  }
+  function isStandaloneMode() {
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  }
+  function initPwaGuide() {
+    if (!isSafariBrowser() || isStandaloneMode()) return;
+    if (localStorage.getItem('pwa-guide-shown')) return;
+    setTimeout(() => {
+      document.getElementById('pwaGuideOverlay')?.classList.add('open');
+    }, 3000);
+  }
+  document.getElementById('pwaGuideOkBtn')?.addEventListener('click', () => {
+    localStorage.setItem('pwa-guide-shown', '1');
+    document.getElementById('pwaGuideOverlay')?.classList.remove('open');
+  });
+  initPwaGuide();
 
   trackVisitor();
   loadApps();
