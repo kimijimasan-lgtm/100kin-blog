@@ -114,12 +114,12 @@
 
   <div class="stats-grid">
     <div class="stat-card">
-      <p class="label">購入者数</p>
-      <p class="value">—</p>
+      <p class="label">購入者数（近似値）</p>
+      <p class="value" id="premiumCount">—</p>
     </div>
     <div class="stat-card">
       <p class="label">ゲスト利用数</p>
-      <p class="value">—</p>
+      <p class="value" id="guestCount">—</p>
     </div>
     <div class="stat-card">
       <p class="label">問い合わせ件数</p>
@@ -130,7 +130,7 @@
       <p class="value" id="publishedCount">—</p>
     </div>
   </div>
-  <p style="font-size:11px; color:var(--muted); margin:-20px 0 32px;">※ 購入者数・ゲスト利用数はStripe／匿名認証ログの集計が未実装のため、現状は未接続です</p>
+  <p style="font-size:11px; color:var(--muted); margin:-20px 0 32px;">※ 購入者数はcrossmemo（メモアプリ）の isPremium 付与済みユーザー数です。決済の実在検証は行っていないため、実際の購入者数とは一致しない場合がある近似値です</p>
 
   <p class="section-title">クイックアクセス</p>
   <div class="quick-links">
@@ -169,11 +169,14 @@
 </footer>
 
 <script type="module">
-  import { auth, db } from "../firebase-config.js";
+  import { app, auth, db } from "../firebase-config.js";
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
   import { collection, query, where, orderBy, limit, getDocs, getCountFromServer } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
 
   const ADMIN_EMAIL = "kimijimasan@gmail.com";
+  const functions = getFunctions(app, "asia-northeast1");
+  const getCrossmemoStats = httpsCallable(functions, "getCrossmemoStats");
 
   document.getElementById('logoutLink').addEventListener('click', async (e) => {
     e.preventDefault();
@@ -188,6 +191,7 @@
     }
     document.getElementById('layout').style.display = '';
     loadStats();
+    loadCrossmemoStats();
     loadRecentInquiries();
   });
 
@@ -201,6 +205,19 @@
       document.getElementById('publishedCount').textContent = publishedSnap.data().count;
     } catch (err) {
       console.error('統計の読み込みに失敗しました', err);
+    }
+  }
+
+  // crossmemo（howto-v2 / torisetu-234c3）側のゲスト利用数・購入者数（近似値）
+  async function loadCrossmemoStats() {
+    try {
+      const result = await getCrossmemoStats();
+      document.getElementById('guestCount').textContent = result.data.guestCount;
+      document.getElementById('premiumCount').textContent = result.data.premiumCount;
+    } catch (err) {
+      console.error('crossmemo統計の読み込みに失敗しました', err);
+      document.getElementById('guestCount').textContent = '取得失敗';
+      document.getElementById('premiumCount').textContent = '取得失敗';
     }
   }
 

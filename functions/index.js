@@ -15,8 +15,9 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
-const { initializeApp } = require("firebase-admin/app");
+const { initializeApp, applicationDefault } = require("firebase-admin/app");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getAuth } = require("firebase-admin/auth");
 const sgMail = require("@sendgrid/mail");
 
 const SENDGRID_API_KEY = defineSecret("SENDGRID_API_KEY");
@@ -31,6 +32,24 @@ const TEST_RECIPIENT_EMAIL = "apps100kin@gmail.com";
 
 initializeApp();
 const db = getFirestore();
+
+// ── crossmemo（howto-v2 / torisetu-234c3）横断集計用のセカンダリApp ──
+// このFunctionsの実行サービスアカウント(...-compute@developer.gserviceaccount.com)に、
+// torisetu-234c3側でFirebase Authentication閲覧者・Realtime Database閲覧者・
+// Service Usage Consumerの3つのIAMロールを付与済み（ユーザー側でConsole操作済み、
+// 2026-07-09）。credentialを明示することで、後段のREST直接呼び出し
+// （countPremiumUsers）でも同じApplication Default Credentialsのトークンを
+// 使い回せるようにしている。
+const CROSSMEMO_DB_URL =
+  "https://torisetu-234c3-default-rtdb.asia-southeast1.firebasedatabase.app";
+const crossmemoApp = initializeApp(
+  {
+    credential: applicationDefault(),
+    projectId: "torisetu-234c3",
+    databaseURL: CROSSMEMO_DB_URL,
+  },
+  "crossmemo"
+);
 
 // 配列を size 件ずつに分割
 function chunk(arr, size) {
@@ -113,5 +132,94 @@ exports.sendBulkMail = onCall(
       `一斉メール送信 完了: ${recipients.length}件 (test=${test}) / 件名「${subject}」`
     );
     return { ok: true, sent: recipients.length, test };
+  }
+);
+
+// crossmemo（howto-v2）のAuthenticationを全ページ走査し、匿名認証
+// （providerDataが空）のユーザー数を数える
+async function countAnonymousUsers() {
+  const auth = getAuth(crossmemoApp);
+  let count = 0;
+  let pageToken;
+  do {
+    const result = await auth.listUsers(1000, pageToken);
+    for (const u of result.users) {
+      if (!u.providerData || u.providerData.length === 0) count++;
+    }
+    pageToken = result.pageToken;
+  } while (pageToken);
+  return count;
+}
+
+// crossmemoのRealtime Databaseから isPremium === true のユーザー数を数える。
+// Stripe決済の実在検証は行っていない（isPremium付与は全てクライアント
+// サイド）ため、実際の購入者数とは一致しない可能性がある近似値。
+//
+// 通常の orderByChild().equalTo() クエリは、一致したユーザーの
+// サブツリー全体（カテゴリ・カード本文・base64画像を含む）を丸ごと
+// 転送してしまい、実際にCloud Functionsのメモリ上限（256MiB）を
+// 超えて失敗した（2026-07-09に実機で確認）。また RTDB REST API の
+// shallow=true はクエリ（orderBy/equalTo）と併用できずHTTP 400になる
+// ことも判明したため、①shallow=trueで全uid一覧のみ取得→②各uidの
+// isPremiumフィールドだけを個別に軽量取得、の2段階で本文データを
+// 一切転送せずに件数を数える。
+async function countPremiumUsers() {
+  const { access_token: accessToken } = await crossmemoApp.options.credential.getAccessToken();
+
+  // ① 全ユーザーのuid一覧をshallowで取得（値はtrue固定で本文は含まれない）
+  const listRes = await fetch(
+    `${CROSSMEMO_DB_URL}/users.json?shallow=true&access_token=${accessToken}`
+  );
+  if (!listRes.ok) {
+    throw new Error(`RTDB shallow一覧取得が失敗しました: HTTP ${listRes.status}`);
+  }
+  const listData = await listRes.json();
+  const uids = listData ? Object.keys(listData) : [];
+
+  // ② 各uidの isPremium フィールドだけを個別取得（本文データは取得しない）。
+  // 同時接続数を上げすぎるとRTDB側でTLS接続がリセットされる事象を確認した
+  // ため、並列数を抑えつつ一時的な失敗は1回だけリトライする。
+  const CONCURRENCY = 5;
+  let count = 0;
+  for (let i = 0; i < uids.length; i += CONCURRENCY) {
+    const batch = uids.slice(i, i + CONCURRENCY);
+    const results = await Promise.all(batch.map((uid) => fetchIsPremium(uid, accessToken)));
+    count += results.filter(Boolean).length;
+  }
+  return count;
+}
+
+async function fetchIsPremium(uid, accessToken, retriesLeft = 1) {
+  try {
+    const res = await fetch(
+      `${CROSSMEMO_DB_URL}/users/${uid}/isPremium.json?access_token=${accessToken}`
+    );
+    return res.ok && (await res.json()) === true;
+  } catch (err) {
+    if (retriesLeft > 0) return fetchIsPremium(uid, accessToken, retriesLeft - 1);
+    logger.warn(`isPremium取得に失敗（uid=${uid}）`, String(err));
+    return false;
+  }
+}
+
+// 管理ダッシュボード（100kin-blog admin/dashboard.html）向け：
+// 別プロジェクト(torisetu-234c3)のゲスト利用数・購入者数（近似値）を横断集計
+exports.getCrossmemoStats = onCall(
+  { region: "asia-northeast1" },
+  async (request) => {
+    if (!request.auth || request.auth.token.email !== ADMIN_EMAIL) {
+      throw new HttpsError("permission-denied", "管理者のみ実行できます。");
+    }
+
+    try {
+      const [guestCount, premiumCount] = await Promise.all([
+        countAnonymousUsers(),
+        countPremiumUsers(),
+      ]);
+      return { guestCount, premiumCount };
+    } catch (err) {
+      logger.error("crossmemo統計の取得に失敗しました", err);
+      throw new HttpsError("internal", "統計の取得に失敗しました。");
+    }
   }
 );
