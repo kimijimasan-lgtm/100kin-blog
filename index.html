@@ -421,6 +421,18 @@
     box-shadow: 0 4px 18px rgba(45, 90, 39, 0.10);
   }
 
+  /* 緑枠直下の注意書き（控えめなトーン） */
+  .privacy-caution {
+    max-width: 560px;
+    margin: 10px auto 0;
+    padding: 0 12px;
+    text-align: center;
+    font-size: clamp(11px, 2.9vw, 13px);
+    font-weight: 400;
+    line-height: 1.7;
+    color: #8b8b80;
+  }
+
   /* ── 詳細への誘導CTA ── */
   .detail-cta {
     text-align: center;
@@ -895,7 +907,8 @@
               <p class="feature-text">${escapeHtml(f)}</p>
             </div>
           `).join('')}
-          <div class="sync-note">PCからも、スマホからも、同じURLを読みに行けるので常に同じ画面が見えます。</div>
+          <div class="sync-note">このアプリはインストールの手間がない身軽で、ブラウザと同じ安全性の仕組みで守られているPWAアプリです</div>
+          <p class="privacy-caution">リスクは0ではないです。メモの中には個人情報は入れないようにしてください。情報の紛失・漏洩について、開発者は責任を負いかねます。</p>
         </section>
 
         <section class="detail-cta">
