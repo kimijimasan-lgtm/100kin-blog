@@ -582,6 +582,8 @@
   .btn-secondary:hover { background: var(--border); }
   .contact-link { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; }
   .contact-link a { color: var(--primary); cursor: pointer; }
+  .purchased-help-link { text-align: center; font-size: 12px; margin-top: 12px; }
+  .purchased-help-link a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 
   /* レビュー */
   .section-title-row {
@@ -853,6 +855,9 @@
           <p class="price">¥${escapeHtml(app.price ?? '')}<br><span>（買い切り）</span></p>
           <a class="btn btn-primary" href="${escapeHtml(app.stripeLink || 'javascript:void(0)')}" target="_blank">購入してログイン</a>
           <a class="btn btn-secondary" href="${escapeHtml(app.guestLink || 'javascript:void(0)')}">ゲストで試してみる</a>
+          <div class="purchased-help-link">
+            <a href="https://crossmemo.web.app/?payment=success" target="_blank" rel="noopener">購入済みなのに使えない方は、こちらから再度お試しください</a>
+          </div>
           <div class="contact-link">
             <a class="review-post-link">アプリのレビューを投稿する ↓</a>
           </div>
