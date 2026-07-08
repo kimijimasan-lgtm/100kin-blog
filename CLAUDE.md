@@ -2,7 +2,34 @@
 
 このファイルはClaude Code向けのプロジェクトメモです。作業を再開する際はまずこのファイルと `設計書.md` を参照してください。
 
-最終更新: 2026-07-08（トップページの文言・書式更新と購入済みユーザー向け再ログイン案内リンクを追加。詳細は「0-9」参照）
+最終更新: 2026-07-09（管理ダッシュボードに購入者数（近似値）・ゲスト利用数を実装。詳細は「0-10」参照）
+
+---
+
+## 0-10. 管理ダッシュボードに購入者数（近似値）・ゲスト利用数を実装（2026-07-09）
+
+**背景:** `admin/dashboard.html` の「購入者数」「ゲスト利用数」は2026-06-23から `—` 表示のまま未接続だった（0-9より前の「3. 管理者ページのFirestore接続」参照）。ゲスト利用数はcrossmemo（howto-v2、Firebaseプロジェクト`torisetu-234c3`）側のFirebase Authentication、購入者数はcrossmemoのRealtime Database `users/{uid}/isPremium` が実データソースであり、いずれもapps100kinとは**別プロジェクト**のため、Cloud Functions経由の横断集計が必要だった（案A：apps100kinのFunctionsからtorisetu-234c3を読みに行く方式を採用。案B＝torisetu-234c3側にFunctions新設はBlazeプラン移行の可能性や管理画面側の二重ログイン構成が必要になり不利と判断）。
+
+**前提の再確認:** 購入者数について、isPremium付与は現在も全てクライアントサイド（`?payment=success`分岐／決済成功モーダル／`onAuthStateChanged`の保険、howto-v2 CLAUDE.md「isPremium付与の3系統」参照）で、Stripe決済の実在検証をする仕組みは無い。そのため今回実装したのは正確な購入者数ではなく **isPremium===trueのユーザー数（近似値）**。正確な購入者数にはStripe Webhook + Cloud Functionsによる決済とアカウントの紐付け（未着手の根本対応）が別途必要。
+
+**IAM設定（ユーザー側でGoogle Cloud Console操作、2026-07-09実施）:** apps100kinのFunctions実行サービスアカウント `579269645791-compute@developer.gserviceaccount.com` に、torisetu-234c3のIAMで以下3ロールを付与:
+- Firebase Authentication 閲覧者
+- Firebase Realtime Database 閲覧者
+- **Service Usage Consumer**（実装・デプロイ後に実機テストして初めて必要と判明。前者2つだけでは `identitytoolkit.googleapis.com` 呼び出しが `403 USER_PROJECT_DENIED` になった。クロスプロジェクトでGoogle CloudのAPIを呼ぶ場合、「データを読む権限」とは別に「どのプロジェクトの割り当てでAPIを呼ぶか」を許可するこのロールが要る、というのが今回得た教訓）
+
+**実装（`functions/index.js`、新規 `getCrossmemoStats`）:**
+- `initializeApp({ credential: applicationDefault(), projectId: "torisetu-234c3", databaseURL: "https://torisetu-234c3-default-rtdb.asia-southeast1.firebasedatabase.app" }, "crossmemo")` でセカンダリAppを追加
+- `countAnonymousUsers()`: `getAuth(crossmemoApp).listUsers()` を`pageToken`が無くなるまでページング、`providerData`が空（＝匿名認証）のユーザーを数える
+- `countPremiumUsers()`: 当初 `ref('users').orderByChild('isPremium').equalTo(true)` で実装したが、**該当ユーザーのサブツリー全体（カテゴリ・カード本文・base64画像を含む）を丸ごと転送してしまい、Cloud Functionsのメモリ上限256MiBを実際に超えて失敗した**（実機で確認）。RTDB REST APIの `shallow=true` をクエリと併用してキーだけ取得しようとしたが、これもRTDB側が非対応で`HTTP 400`になることが判明。最終的に**2段階方式**で解決: ①`users.json?shallow=true`で全uid一覧のみ取得（値は`true`固定で本文を含まない）→②各uidについて`users/{uid}/isPremium.json`だけを個別取得（本文データを一切転送しない）。同時実行数20で試したところRTDB側でTLS接続がリセットされる事象（`ECONNRESET`）が発生したため、並列数5＋1回リトライに調整
+- 管理者チェック（`request.auth.token.email === ADMIN_EMAIL`）は`sendBulkMail`と同一パターン
+- **教訓として記録**: RTDBの`orderByChild().equalTo()`は「条件に一致した全データ」を丸ごと返す設計であり、「件数だけ」「特定フィールドだけ」欲しい場合でも軽量化されない。大きな本文を持つ可能性があるノードを横断集計するときは、shallow一覧→個別フィールド取得のような多段アプローチを最初から検討すべきだった
+
+**`admin/dashboard.html` の変更:**
+- 「購入者数」→「購入者数（近似値）」に表示ラベル変更、`id="premiumCount"` / `id="guestCount"` を追加
+- 注記を「※ 購入者数・ゲスト利用数はStripe／匿名認証ログの集計が未実装のため、現状は未接続です」→「※ 購入者数はcrossmemo（メモアプリ）の isPremium 付与済みユーザー数です。決済の実在検証は行っていないため、実際の購入者数とは一致しない場合がある近似値です」に変更
+- `firebase-config.js`の`app`をimportし、`getFunctions(app, "asia-northeast1")` → `httpsCallable(functions, "getCrossmemoStats")`（`admin/mail-send.html`の`sendBulkMail`呼び出しと同一パターン）で`loadCrossmemoStats()`を新設、`onAuthStateChanged`確定後に`loadStats()`と並んで呼び出す
+
+**検証（2026-07-09、本番環境で実施）:** 開発者の実ブラウザセッションが管理ダッシュボードにログイン済みだったため、ローカルではなく本番URL（`https://apps100kin.web.app/admin/dashboard.html`）に対しCloud Functionsデプロイ→ブラウザ確認のサイクルを繰り返して検証。最終的に「購入者数（近似値）4」「ゲスト利用数122」が正しく表示されることを確認し、Cloud Functionsログにもエラーが無いことを確認済み。
 
 ---
 
