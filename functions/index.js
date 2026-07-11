@@ -62,6 +62,7 @@ exports.sendBulkMail = onCall(
   {
     secrets: [SENDGRID_API_KEY],
     region: "asia-northeast1", // 東京リージョン
+    maxInstances: 2, // 大量アクセス対策：管理者専用・低頻度のためスケールを制限
   },
   async (request) => {
     // ── 認可：管理者のみ実行可（Firestoreルールに加えた多層防御）──
@@ -205,7 +206,7 @@ async function fetchIsPremium(uid, accessToken, retriesLeft = 1) {
 // 管理ダッシュボード（100kin-blog admin/dashboard.html）向け：
 // 別プロジェクト(torisetu-234c3)のゲスト利用数・購入者数（近似値）を横断集計
 exports.getCrossmemoStats = onCall(
-  { region: "asia-northeast1" },
+  { region: "asia-northeast1", maxInstances: 2 }, // 大量アクセス対策：管理者専用・低頻度のためスケールを制限
   async (request) => {
     if (!request.auth || request.auth.token.email !== ADMIN_EMAIL) {
       throw new HttpsError("permission-denied", "管理者のみ実行できます。");
