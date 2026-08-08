@@ -44,6 +44,7 @@
       display: inline; color: var(--accent); font-size: 12px; font-weight: 700; white-space: nowrap;
     }
     header nav { display: none; }
+    #guestUsageCard { display: none; }
     footer .desktop-footer-text { display: none; }
     footer .mobile-back-link {
       display: inline-block; color: #ffe033; font-weight: 700; font-size: 14px; text-decoration: none;
@@ -54,11 +55,10 @@
 
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 16px;
     margin-bottom: 32px;
   }
-  @media (max-width: 700px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
   .stat-card {
     background: var(--surface); border: 0.5px solid var(--border);
     border-radius: var(--radius); padding: 18px;
@@ -114,11 +114,13 @@
 <div class="layout" id="layout" style="display:none;">
 
   <div class="stats-grid">
-    <div class="stat-card">
-      <p class="label">購入者数（近似値）</p>
-      <p class="value" id="premiumCount">—</p>
+    <div id="purchaserStats" style="display:contents;">
+      <div class="stat-card">
+        <p class="label">購入者数（近似値）</p>
+        <p class="value">—</p>
+      </div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card" id="guestUsageCard">
       <p class="label">ゲスト利用数</p>
       <p class="value" id="guestCount">—</p>
       <p class="note">※延べ数（同一人物が複数回ゲスト利用した場合も加算されます）</p>
@@ -132,7 +134,7 @@
       <p class="value" id="publishedCount">—</p>
     </div>
   </div>
-  <p style="font-size:11px; color:var(--muted); margin:-20px 0 32px;">※ 購入者数はcrossmemo（メモアプリ）の isPremium 付与済みユーザー数です。決済の実在検証は行っていないため、実際の購入者数とは一致しない場合がある近似値です</p>
+  <p style="font-size:11px; color:var(--muted); margin:-20px 0 32px;">※ 購入者数（アプリ別）はStripe決済の実在検証を行っていない近似値です（PCスマホ連動メモはクライアントサイドで付与されるisPremiumフラグ、それ以外のアプリはStripe WebhookでRTDBに付与されるpurchasedAppsフラグを、それぞれ集計しています）</p>
 
   <p class="section-title">クイックアクセス</p>
   <div class="quick-links">
@@ -210,16 +212,46 @@
     }
   }
 
-  // crossmemo（howto-v2 / torisetu-234c3）側のゲスト利用数・購入者数（近似値）
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = String(s ?? '');
+    return div.innerHTML;
+  }
+
+  // apps コレクションから appId → 表示名(name) のマップを作る
+  async function loadAppNames() {
+    const snap = await getDocs(collection(db, 'apps'));
+    const map = {};
+    snap.forEach(docSnap => {
+      map[docSnap.id] = docSnap.data().name || docSnap.id;
+    });
+    return map;
+  }
+
+  // crossmemo（howto-v2 / torisetu-234c3）側のゲスト利用数・アプリ別購入者数（近似値）
   async function loadCrossmemoStats() {
+    const purchaserStats = document.getElementById('purchaserStats');
     try {
-      const result = await getCrossmemoStats();
+      const [result, appNames] = await Promise.all([
+        getCrossmemoStats(),
+        loadAppNames()
+      ]);
       document.getElementById('guestCount').textContent = result.data.guestCount;
-      document.getElementById('premiumCount').textContent = result.data.premiumCount;
+
+      const counts = result.data.purchaserCounts || {};
+      const appIds = Object.keys(counts);
+      purchaserStats.innerHTML = appIds.length
+        ? appIds.map(appId => `
+            <div class="stat-card">
+              <p class="label">${escapeHtml(appNames[appId] || appId)}<br>購入者数（近似値）</p>
+              <p class="value">${escapeHtml(counts[appId])}</p>
+            </div>
+          `).join('')
+        : '<div class="stat-card"><p class="label">購入者数（近似値）</p><p class="value">—</p></div>';
     } catch (err) {
       console.error('crossmemo統計の読み込みに失敗しました', err);
       document.getElementById('guestCount').textContent = '取得失敗';
-      document.getElementById('premiumCount').textContent = '取得失敗';
+      purchaserStats.innerHTML = '<div class="stat-card"><p class="label">購入者数（近似値）</p><p class="value">取得失敗</p></div>';
     }
   }
 

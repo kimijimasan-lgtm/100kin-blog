@@ -51,6 +51,48 @@
     touch-action: manipulation;
     user-select: none; -webkit-user-select: none;
   }
+  .qr-share-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; flex-shrink: 0;
+    border: none; background: none; padding: 0; cursor: pointer;
+    color: #fff;
+  }
+  .qr-share-btn svg { width: 22px; height: 22px; }
+
+  /* ── QRコード共有モーダル（画面いっぱいに広がる） ── */
+  .qr-modal-overlay {
+    position: fixed; inset: 0; z-index: 350;
+    background: rgba(0,0,0,0.75);
+    display: none; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .qr-modal-overlay.open { display: flex; }
+  .qr-modal-content {
+    position: relative;
+    background: var(--surface); color: var(--text);
+    border-radius: 20px;
+    padding: 40px 28px 32px;
+    width: 100%; max-width: 340px;
+    display: flex; flex-direction: column; align-items: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .qr-modal-close {
+    position: absolute; top: 10px; right: 10px;
+    width: 36px; height: 36px; border-radius: 50%;
+    border: none; background: var(--bg); color: var(--text);
+    font-size: 18px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qr-code-canvas {
+    margin: 8px 0 22px;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 220px; min-height: 220px;
+  }
+  .qr-code-canvas canvas { border-radius: 8px; }
+  .qr-modal-message {
+    text-align: center; font-size: 21px; font-weight: 900;
+    color: var(--primary); line-height: 1.4;
+  }
   .visitor-count {
     font-size: 16px;
     font-weight: 700;
@@ -248,7 +290,9 @@
     display: block;
     width: 100%;
     text-align: left;
-    padding-left: clamp(8px, 4vw, 24px);
+    /* #prevBtn（左上の「前の作品」矢印＋ラベル）が left:6px 〜 約58px を占有するため、
+       そこと重ならないよう固定pxで余白を確保する（矢印はvw非連動の固定サイズのため） */
+    padding-left: 70px;
     font-size: clamp(26px, 8vw, 44px);
     color: var(--accent);
     margin-bottom: 4px;
@@ -256,6 +300,14 @@
   .hero-title .line2 {
     display: block;
     font-size: clamp(32px, 9vw, 60px);
+  }
+  .hero-title .line2 .line2-row {
+    display: block;
+    width: 100%;
+    text-align: left;
+  }
+  .hero-title .line2 .line2-row.line2-right {
+    text-align: right;
   }
   .hero-catchbox {
     display: inline-block;
@@ -347,6 +399,13 @@
     text-align: center;
     transition: transform 0.15s, opacity 0.15s;
   }
+  /* ボタンが1つしかない（ゲストで試すが無いアプリ）場合、flex:1で
+     コンテナ幅いっぱいに伸びてしまうのを防ぎ、文字量に合った幅にする */
+  .hero-ctas .hero-btn:only-child {
+    flex: 0 1 auto;
+    min-width: 220px;
+    max-width: 280px;
+  }
   .hero-btn:active { transform: scale(0.97); }
   .hero-btn.purchase { background: var(--accent); color: #fff; box-shadow: 0 6px 18px rgba(232,160,32,0.4); }
   .hero-btn.purchase:hover { opacity: 0.92; }
@@ -390,6 +449,7 @@
     opacity: 0; transform: translateY(28px);
     transition: opacity 0.6s ease, transform 0.6s ease;
   }
+  .feature-item:has(.feature-content) { align-items: flex-start; }
   .feature-item:last-child { border-bottom: none; }
   .feature-item.visible { opacity: 1; transform: translateY(0); }
   .feature-item .mark {
@@ -398,6 +458,18 @@
     background: var(--primary); color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-size: 16px; font-weight: 700;
+  }
+  .feature-item .feature-heading {
+    font-size: clamp(16px, 3.8vw, 19px);
+    font-weight: 900;
+    line-height: 1.5;
+    margin-bottom: 4px;
+  }
+  .feature-item .feature-body {
+    font-size: clamp(14px, 3.4vw, 16px);
+    font-weight: 500;
+    line-height: 1.65;
+    color: var(--muted, #4d4d45);
   }
   .feature-item .feature-text {
     font-size: clamp(15px, 3.6vw, 18px);
@@ -671,6 +743,8 @@
     .hero-screenshot { height: auto; aspect-ratio: 9/17; }
     .hero-noimage { flex: 0 0 auto; aspect-ratio: 9/17; }
     .hero-text-block { order: 1; display: flex; flex-direction: column; align-items: flex-start; flex: 1 1 420px; max-width: 480px; }
+    /* PC横並びレイアウトでは矢印(#prevBtn)と重ならないため、モバイル用の固定余白は不要 */
+    .hero-title .line1 { padding-left: clamp(8px, 4vw, 24px); }
     .hero-title .line2 { font-size: clamp(28px, 4.4vw, 46px); white-space: nowrap; }
     .hero-catchbox { align-self: flex-start; }
     .hero-ctas { justify-content: flex-start; max-width: 460px; margin-top: 0; }
@@ -680,6 +754,17 @@
 <body>
 
 <header>
+  <button id="qrShareBtn" class="qr-share-btn" type="button" aria-label="QRコードで共有">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7"></rect>
+      <rect x="14" y="3" width="7" height="7"></rect>
+      <rect x="3" y="14" width="7" height="7"></rect>
+      <path d="M14 14h3v3h-3z"></path>
+      <path d="M14 21h3"></path>
+      <path d="M21 14v3"></path>
+      <path d="M21 21h.01"></path>
+    </svg>
+  </button>
   <h1>100均アプリ</h1>
   <span class="visitor-count" id="visitorCount"></span>
   <span class="modal-hint">右スワイプでトップへ</span>
@@ -723,6 +808,15 @@
   </div>
 </div>
 
+<div id="qrModalOverlay" class="qr-modal-overlay">
+  <div class="qr-modal-content">
+    <button id="qrModalCloseBtn" class="qr-modal-close" type="button" aria-label="閉じる">&#10005;</button>
+    <div id="qrCodeCanvas" class="qr-code-canvas"></div>
+    <p class="qr-modal-message">他の人にも広めてね❣️</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <script type="module">
   import { db } from "./firebase-config.js";
   import { collection, query, where, orderBy, getDocs, doc, setDoc, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
@@ -854,10 +948,10 @@
         <div class="purchase-box">
           <p class="price">¥${escapeHtml(app.price ?? '')}<br><span>（買い切り）</span></p>
           <a class="btn btn-primary" href="${escapeHtml(app.stripeLink || 'javascript:void(0)')}" target="_blank">購入してログイン</a>
-          <a class="btn btn-secondary" href="${escapeHtml(app.guestLink || 'javascript:void(0)')}">ゲストで試してみる</a>
-          <div class="purchased-help-link">
-            購入済みなのに使えない方は<a href="https://crossmemo.web.app/?payment=success" target="_blank" rel="noopener">こちらから</a>
-          </div>
+          ${app.guestLink ? `<a class="btn btn-secondary" href="${escapeHtml(app.guestLink)}">ゲストで試してみる</a>` : ''}
+          ${app.recoveryLink ? `<div class="purchased-help-link">
+            購入済みなのに使えない方は<a href="${escapeHtml(app.recoveryLink)}" target="_blank" rel="noopener">こちらから</a>
+          </div>` : ''}
           <div class="contact-link">
             <a class="review-post-link">アプリのレビューを投稿する ↓</a>
           </div>
@@ -883,19 +977,31 @@
     `;
   }
 
+  // app.titleLine2 が app.name の末尾と一致する場合、その部分だけ改行して右詰め表示する
+  // （未設定の場合は従来通り1行のプレーンテキスト表示）
+  function heroTitleLine2Html(app) {
+    const name = app.name || '';
+    const lastLine = app.titleLine2 || '';
+    if (lastLine && name.endsWith(lastLine) && name.length > lastLine.length) {
+      const firstLine = name.slice(0, name.length - lastLine.length);
+      return `<span class="line2-row">${escapeHtml(firstLine)}</span><span class="line2-row line2-right">${escapeHtml(lastLine)}</span>`;
+    }
+    return escapeHtml(name);
+  }
+
   function appPageHtml(app, reviews, slides, i) {
     const catchText = (app.catchWords || []).join('');
     const features = app.features || [];
     return `
       <section class="hero">
         <div class="hero-text-block">
-          <p class="hero-title"><span class="line1">${i + 1}作目</span><span class="line2">${escapeHtml(app.name || '')}</span></p>
+          <p class="hero-title"><span class="line1">${i + 1}作目</span><span class="line2">${heroTitleLine2Html(app)}</span></p>
           ${catchText ? `<p class="hero-catchbox">${escapeHtml(catchText)}</p>` : ''}
         </div>
         ${heroCarouselHtml(topImagesFor(app), app)}
         <div class="hero-ctas">
-          <a class="hero-btn guest" href="${escapeHtml(app.guestLink || 'javascript:void(0)')}">ゲストで試す</a>
-          <a class="hero-btn purchase" href="${escapeHtml(app.stripeLink || 'javascript:void(0)')}" target="_blank">購入する</a>
+          ${app.guestLink ? `<a class="hero-btn guest" href="${escapeHtml(app.guestLink)}">ゲストで試す</a>` : ''}
+          <a class="hero-btn purchase" href="${escapeHtml(app.stripeLink || 'javascript:void(0)')}" target="_blank">${escapeHtml(app.buyButtonLabel || '購入する')}</a>
         </div>
         <a class="scroll-hint" href="javascript:void(0)">
           <span>特徴を見る</span>
@@ -906,14 +1012,21 @@
       <div class="intro-scroll">
         <section class="features-section">
           <div class="section-label-wrap"><p class="section-label">開発の動機</p></div>
-          ${features.map((f, j) => `
+          ${features.map((f, j) => {
+            const isHeadingBody = f && typeof f === 'object';
+            return `
             <div class="feature-item">
               <div class="mark">${j + 1}</div>
-              <p class="feature-text">${escapeHtml(f)}</p>
+              ${isHeadingBody ? `
+              <div class="feature-content">
+                <p class="feature-heading">${escapeHtml(f.heading || '')}</p>
+                <p class="feature-body">${escapeHtml(f.body || '')}</p>
+              </div>` : `<p class="feature-text">${escapeHtml(f)}</p>`}
             </div>
-          `).join('')}
+          `;
+          }).join('')}
           <div class="sync-note">このアプリはインストールの手間がない身軽で、ブラウザと同じ安全性の仕組みで守られているPWAアプリです</div>
-          <p class="privacy-caution">リスクは0ではないです。メモの中には個人情報は入れないようにしてください。情報の紛失・漏洩について、開発者は責任を負いかねます。</p>
+          ${app.id === 'memo-sync' ? '<p class="privacy-caution">リスクは0ではないです。メモの中には個人情報は入れないようにしてください。情報の紛失・漏洩について、開発者は責任を負いかねます。</p>' : ''}
         </section>
 
         <section class="detail-cta">
@@ -1320,6 +1433,27 @@
     document.getElementById('pwaGuideOverlay')?.classList.remove('open');
   });
   initPwaGuide();
+
+  // ── QRコード共有モーダル ──
+  // 常に「今表示中のページ」のURLをQR化する（開いた時点でwindow.location.hrefから再生成）
+  function openQrModal() {
+    const container = document.getElementById('qrCodeCanvas');
+    if (container && typeof QRCode !== 'undefined') {
+      container.innerHTML = '';
+      const canvas = document.createElement('canvas');
+      container.appendChild(canvas);
+      QRCode.toCanvas(canvas, window.location.href, { width: 220, margin: 1 });
+    }
+    document.getElementById('qrModalOverlay')?.classList.add('open');
+  }
+  function closeQrModal() {
+    document.getElementById('qrModalOverlay')?.classList.remove('open');
+  }
+  document.getElementById('qrShareBtn')?.addEventListener('click', openQrModal);
+  document.getElementById('qrModalCloseBtn')?.addEventListener('click', closeQrModal);
+  document.getElementById('qrModalOverlay')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeQrModal();
+  });
 
   trackVisitor();
   loadApps();
